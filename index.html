@@ -1,669 +1,501 @@
-<!DOCTYPE html>
-<html lang="zh-Hant-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>福岡蜜月旅行</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Vue 3 -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- SortableJS 拖曳功能 -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <!-- Phosphor Icons (高質感簡約圖示) -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        lavender: {
-                            50: '#FDFBFD',
-                            100: '#F4EBFC', // 您提供的圖片底色延伸
-                            200: '#E6D4F4',
-                            300: '#D4B3EA',
-                            400: '#BD8ADD',
-                            500: '#A160CE', // 主色調
-                            600: '#8A45B8',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['"Noto Sans TC"', 'sans-serif'],
-                    }
-                }
-            }
+import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { 
+  MapPin, Suitcase, ShoppingBasket, CurrencyCircleDollar, 
+  Clock, Bell, Trash2, Plus, CheckCircle2, 
+  Map as MapIcon, X, Settings, Plane, CheckSquare
+} from 'lucide-react';
+
+// Firebase Config
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'fukuoka-honeymoon-v3';
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('itinerary');
+  const [activeDate, setActiveDate] = useState('2026-05-05');
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // 初始化共享資料結構
+  const [sharedData, setSharedData] = useState({
+    itinerary: {
+      '2026-05-05': [], '2026-05-06': [], '2026-05-07': [],
+      '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
+    },
+    flight: {
+      departure: { airline: '長榮航空', code: 'BR106', takeoff: '08:10', landing: '11:20' },
+      return: { airline: '星宇航空', code: 'JX841', takeoff: '12:20', landing: '13:45' }
+    },
+    preCheck: [
+      { id: 'pc1', name: '重要證件', items: [{ id: 'pci1', name: '護照', checked: false }] }
+    ],
+    luggage: [
+      { id: 'l1', name: '衣物', items: [{ id: 'li1', name: '外套', checked: false }] }
+    ],
+    shopping: [
+      { id: 's1', name: '美食特產', items: [{ id: 'si1', name: '一蘭泡麵', checked: false, tags: ['必買'] }] }
+    ],
+    expenses: []
+  });
+
+  const [modal, setModal] = useState({ show: false, type: '', data: null });
+
+  // 1. 身份認證與即時同步監聽
+  useEffect(() => {
+    const initSync = async () => {
+      try {
+        const userCredential = await signInAnonymously(auth);
+        setUser(userCredential.user);
+
+        const docRef = doc(db, 'artifacts', appId, 'public', 'tripData');
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setSharedData(docSnap.data());
+          } else {
+            setDoc(docRef, sharedData);
+          }
+          setLoading(false);
+        });
+        return unsubscribe;
+      } catch (err) {
+        console.error("Sync Error:", err);
+        setLoading(false);
+      }
+    };
+    initSync();
+  }, []);
+
+  // 2. 提醒通知邏輯 (5分鐘前)
+  useEffect(() => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") Notification.requestPermission();
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      Object.values(sharedData.itinerary).flat().forEach(item => {
+        if (item.time && item.remind) {
+          const [h, m] = item.time.split(':');
+          const itemTime = new Date();
+          itemTime.setHours(parseInt(h), parseInt(m) - 5, 0); // 設定為行程前5分鐘
+          
+          const diff = Math.floor((itemTime.getTime() - now.getTime()) / 60000);
+          if (diff === 0) {
+            new Notification(`福岡行程提醒`, {
+              body: `5分鐘後行程：${item.name} (${item.time})`,
+              icon: 'https://cdn-icons-png.flaticon.com/512/252/252025.png'
+            });
+          }
         }
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        
-        body {
-            background-color: #FDFBFD;
-            -webkit-tap-highlight-color: transparent;
-        }
-        /* 隱藏滾動條但保持可滾動 */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        /* 拖曳時的樣式 */
-        .sortable-ghost {
-            opacity: 0.4;
-            background-color: #F4EBFC;
-        }
-        .sortable-drag {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-    </style>
-</head>
-<body class="text-gray-700 font-sans antialiased">
+      });
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [sharedData]);
 
-<div id="app" class="max-w-md mx-auto bg-lavender-50 min-h-screen relative shadow-xl overflow-hidden">
-    
-    <!-- 頁首 Banner (250px) -->
-    <header class="relative h-[250px] w-full bg-lavender-200">
-        <!-- 替換為您上傳的圖片 -->
-        <img src="M6cH6f4bdmcJryLEtnmhGktaYkUSfReqd8p9GlWL__1682_1121.jpg" alt="Fukuoka Honeymoon" class="w-full h-full object-cover object-left" onerror="this.src='https://images.unsplash.com/photo-1599813955606-d5b7803e49e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'">
-        
-        <!-- 漸層遮罩讓按鈕更清楚 -->
-        <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+  // 3. 資料更新輔助函數 (同步到雲端)
+  const syncUpdate = async (newData) => {
+    const docRef = doc(db, 'artifacts', appId, 'public', 'tripData');
+    await setDoc(docRef, newData);
+  };
 
-        <!-- 浮動 Tab 按鈕 (置於右下角) -->
-        <div class="absolute bottom-10 right-4 flex space-x-2 bg-white/80 backdrop-blur-md px-3 py-2 rounded-2xl shadow-sm z-20">
-            <button @click="activeTab = 'itinerary'" :class="{'text-lavender-500 scale-110': activeTab === 'itinerary', 'text-gray-400': activeTab !== 'itinerary'}" class="p-2 transition-transform">
-                <i class="ph-fill ph-map-pin text-2xl"></i>
-            </button>
-            <button @click="activeTab = 'info'" :class="{'text-lavender-500 scale-110': activeTab === 'info', 'text-gray-400': activeTab !== 'info'}" class="p-2 transition-transform">
-                <i class="ph-fill ph-info text-2xl"></i>
-            </button>
-            <button @click="activeTab = 'shopping'" :class="{'text-lavender-500 scale-110': activeTab === 'shopping', 'text-gray-400': activeTab !== 'shopping'}" class="p-2 transition-transform">
-                <i class="ph-fill ph-basket text-2xl"></i>
-            </button>
-            <button @click="activeTab = 'expense'" :class="{'text-lavender-500 scale-110': activeTab === 'expense', 'text-gray-400': activeTab !== 'expense'}" class="p-2 transition-transform">
-                <i class="ph-fill ph-currency-circle-dollar text-2xl"></i>
-            </button>
+  // 4. 通用操作
+  const toggleCheck = (type, catId, itemId) => {
+    const newData = { ...sharedData };
+    const cat = newData[type].find(c => c.id === catId);
+    const item = cat.items.find(i => i.id === itemId);
+    item.checked = !item.checked;
+    syncUpdate(newData);
+  };
+
+  const deleteItem = (type, catId, itemId) => {
+    const newData = { ...sharedData };
+    const cat = newData[type].find(c => c.id === catId);
+    cat.items = cat.items.filter(i => i.id !== itemId);
+    syncUpdate(newData);
+  };
+
+  // 5. 子組件：行程卡片
+  const ItineraryCard = ({ item, index }) => (
+    <div className="relative pl-8 pb-8 last:pb-0">
+      <div className="absolute left-0 top-1.5 w-3 h-3 bg-purple-500 rounded-full border-2 border-white shadow-sm z-10"></div>
+      {index !== sharedData.itinerary[activeDate].length - 1 && (
+        <div className="absolute left-[5px] top-4 w-[2px] h-full bg-purple-100"></div>
+      )}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-50 hover:border-purple-200 transition-all">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center space-x-2">
+            <span className="text-[10px] font-black text-purple-500 bg-purple-50 px-2 py-0.5 rounded">{item.category}</span>
+            <span className="text-xs font-bold text-gray-400 flex items-center"><Clock size={12} className="mr-1"/>{item.time}</span>
+          </div>
+          <div className="flex space-x-2">
+            {item.remind && <Bell size={14} className="text-orange-400 fill-orange-400" />}
+            {item.mapUrl && <a href={item.mapUrl} target="_blank" className="text-blue-400"><MapIcon size={16} /></a>}
+            <button onClick={() => {
+               const newData = {...sharedData};
+               newData.itinerary[activeDate] = newData.itinerary[activeDate].filter(i => i.id !== item.id);
+               syncUpdate(newData);
+            }} className="text-gray-200"><X size={16} /></button>
+          </div>
         </div>
-    </header>
-
-    <!-- 主內容區 (利用負邊距向上拉動，創造圓潤無縫效果) -->
-    <main class="bg-lavender-50 rounded-t-[32px] -mt-6 relative z-10 min-h-[calc(100vh-226px)] pb-24 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-        
-        <!-- ==================== 1. 每日行程表 ==================== -->
-        <div v-show="activeTab === 'itinerary'" class="pt-6 px-5">
-            
-            <!-- 日期選單 (橫向滑動) -->
-            <div class="flex overflow-x-auto no-scrollbar space-x-4 pb-4 mb-2">
-                <div v-for="date in dates" :key="date.id" @click="selectDate(date.id)" 
-                     class="flex flex-col items-center justify-center min-w-[65px] h-[75px] rounded-2xl cursor-pointer transition-colors shadow-sm"
-                     :class="activeDate === date.id ? 'bg-lavender-500 text-white' : 'bg-white text-gray-500'">
-                    <span class="text-xl font-bold">{{ date.day }}</span>
-                    <span class="text-sm">{{ date.date }}</span>
-                </div>
-            </div>
-
-            <!-- 天氣資訊 (模擬自動抓取) -->
-            <div class="flex items-center justify-between bg-white rounded-2xl p-4 shadow-sm mb-6 border border-lavender-100">
-                <div class="flex items-center space-x-3 text-lavender-600">
-                    <i class="ph-fill ph-cloud-sun text-3xl"></i>
-                    <div>
-                        <p class="font-bold text-lg">福岡市區</p>
-                        <p class="text-xs text-gray-400">晴時多雲</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="text-2xl font-bold text-gray-700">22°C</p>
-                    <p class="text-xs text-gray-400">體感 24°C</p>
-                </div>
-            </div>
-
-            <!-- 行程列表 -->
-            <div id="itinerary-list" class="space-y-0">
-                <template v-for="(item, index) in currentItinerary" :key="item.id">
-                    
-                    <!-- 行程卡片 -->
-                    <div class="bg-white rounded-2xl shadow-sm p-4 relative border-l-4 border-lavender-400 active:scale-[0.98] transition-transform"
-                         @click="openMap(item.name)">
-                        <!-- 編輯按鈕 -->
-                        <button @click.stop="openEditModal(item)" class="absolute top-3 right-3 text-gray-300 hover:text-lavender-500">
-                            <i class="ph ph-dots-three-outline-vertical text-xl"></i>
-                        </button>
-
-                        <!-- 第一天 第一個行程：航班樣式 -->
-                        <div v-if="item.type === '航班'" class="flex flex-col">
-                            <div class="flex items-center space-x-2 text-lavender-500 mb-2">
-                                <i class="ph-fill ph-airplane-tilt text-xl"></i>
-                                <span class="font-bold text-sm bg-lavender-100 px-2 py-0.5 rounded-md">航班資訊</span>
-                            </div>
-                            <h3 class="text-lg font-bold text-gray-800">{{ item.name }}</h3>
-                            <div class="flex items-center justify-between mt-3 bg-gray-50 p-3 rounded-xl">
-                                <div class="text-center">
-                                    <p class="text-xs text-gray-400">起飛 (TPE)</p>
-                                    <p class="font-bold text-gray-700">{{ item.time.split('-')[0] }}</p>
-                                </div>
-                                <i class="ph-fill ph-arrow-right text-gray-300"></i>
-                                <div class="text-center">
-                                    <p class="text-xs text-gray-400">抵達 (FUK)</p>
-                                    <p class="font-bold text-gray-700">{{ item.time.split('-')[1] }}</p>
-                                </div>
-                            </div>
-                            <p v-if="item.note" class="text-xs text-gray-500 mt-2 bg-yellow-50 p-2 rounded-lg">備註: {{ item.note }}</p>
-                        </div>
-
-                        <!-- 一般行程樣式 -->
-                        <div v-else class="flex flex-col pl-2">
-                            <div class="flex items-center space-x-2 mb-1">
-                                <span class="text-xs font-bold text-lavender-500 bg-lavender-100 px-2 py-0.5 rounded-md">{{ item.type }}</span>
-                                <span v-if="item.time" class="text-xs text-gray-400"><i class="ph ph-clock mr-1"></i>{{ item.time }}</span>
-                            </div>
-                            <h3 class="text-lg font-bold text-gray-800">{{ item.name }}</h3>
-                            
-                            <div class="mt-2 space-y-1">
-                                <p v-if="item.ticket" class="text-xs text-gray-500 flex items-center"><i class="ph ph-ticket mr-1 text-lavender-400"></i>門票: {{ item.ticket }}</p>
-                                <p v-if="item.note" class="text-xs text-gray-500 flex items-start"><i class="ph ph-info mr-1 mt-0.5 text-lavender-400"></i>特點: {{ item.note }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 交通時間 (在兩個行程之間) -->
-                    <div v-if="index < currentItinerary.length - 1" class="flex flex-col items-center py-2 relative">
-                        <div class="w-0.5 h-8 bg-dashed bg-lavender-200"></div>
-                        <div class="absolute top-1/2 -translate-y-1/2 bg-lavender-50 border border-lavender-200 text-lavender-600 text-[10px] px-2 py-1 rounded-full flex items-center shadow-sm">
-                            <i v-if="item.transitMode === '步行'" class="ph-fill ph-person-simple-walk mr-1"></i>
-                            <i v-else-if="item.transitMode === '大眾運輸'" class="ph-fill ph-train mr-1"></i>
-                            <i v-else class="ph-fill ph-car mr-1"></i>
-                            {{ item.transitTime }}
-                        </div>
-                    </div>
-                </template>
-            </div>
-
-            <!-- 浮動新增按鈕 (+) -->
-            <button @click="openAddModal('itinerary')" class="fixed bottom-6 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-lavender-600 transition-colors z-50">
-                <i class="ph ph-plus text-2xl font-bold"></i>
-            </button>
-        </div>
-
-        <!-- ==================== 2. 資訊 ==================== -->
-        <div v-show="activeTab === 'info'" class="pt-6 px-5 space-y-6">
-            
-            <!-- 匯率換算 -->
-            <div class="bg-white rounded-2xl shadow-sm p-4 border border-lavender-100">
-                <h3 class="font-bold text-gray-700 flex items-center mb-3"><i class="ph-fill ph-currency-circle-dollar text-lavender-500 mr-2 text-xl"></i>匯率換算 (大約)</h3>
-                <div class="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-                    <div class="flex-1">
-                        <label class="text-xs text-gray-400">日幣 (JPY)</label>
-                        <input type="number" v-model.number="jpyInput" class="w-full bg-transparent font-bold text-lg outline-none" placeholder="輸入日幣">
-                    </div>
-                    <i class="ph ph-arrows-left-right text-lavender-400 text-xl mx-2"></i>
-                    <div class="flex-1 text-right">
-                        <label class="text-xs text-gray-400">台幣 (TWD)</label>
-                        <p class="font-bold text-lg text-lavender-600">約 ${{ calculatedTwd }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 航班資訊 -->
-            <div class="bg-white rounded-2xl shadow-sm p-4 border border-lavender-100">
-                <h3 class="font-bold text-gray-700 flex items-center mb-3"><i class="ph-fill ph-airplane-in-flight text-lavender-500 mr-2 text-xl"></i>航班資訊</h3>
-                <div class="space-y-3">
-                    <div class="bg-lavender-50 rounded-xl p-3">
-                        <span class="text-xs font-bold text-lavender-500">去程 5/5</span>
-                        <div class="flex justify-between mt-1">
-                            <div><p class="font-bold">TPE 08:10</p></div>
-                            <div class="text-xs text-gray-400 pt-1">BR106 (2h10m)</div>
-                            <div><p class="font-bold">FUK 11:20</p></div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 rounded-xl p-3">
-                        <span class="text-xs font-bold text-gray-500">回程 5/10</span>
-                        <div class="flex justify-between mt-1">
-                            <div><p class="font-bold">FUK 12:20</p></div>
-                            <div class="text-xs text-gray-400 pt-1">BR105 (2h25m)</div>
-                            <div><p class="font-bold">TPE 13:45</p></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 住宿資訊 -->
-            <div class="bg-white rounded-2xl shadow-sm p-4 border border-lavender-100">
-                <h3 class="font-bold text-gray-700 flex items-center mb-3"><i class="ph-fill ph-bed text-lavender-500 mr-2 text-xl"></i>住宿資訊</h3>
-                <div class="bg-gray-50 rounded-xl p-3 relative">
-                    <button @click="openMap('都酒店 博多')" class="absolute top-3 right-3 text-lavender-500"><i class="ph-fill ph-navigation-arrow text-xl"></i></button>
-                    <p class="font-bold text-gray-800">都酒店 博多 (Miyako Hotel)</p>
-                    <p class="text-xs text-gray-500 mt-1"><i class="ph-fill ph-phone mr-1"></i>+81 92-441-3111</p>
-                    <p class="text-xs text-gray-500 mt-1"><i class="ph-fill ph-map-pin mr-1"></i>福岡縣福岡市博多區博多?東2丁目1-1</p>
-                </div>
-            </div>
-
-            <!-- 行李必備清單 (可展開收合) -->
-            <div class="bg-white rounded-2xl shadow-sm border border-lavender-100 overflow-hidden">
-                <h3 class="font-bold text-gray-700 flex items-center p-4 pb-2"><i class="ph-fill ph-suitcase-rolling text-lavender-500 mr-2 text-xl"></i>行李必備清單</h3>
-                <div v-for="(category, cIndex) in luggageList" :key="cIndex" class="border-t border-gray-100">
-                    <button @click="category.expanded = !category.expanded" class="w-full flex justify-between items-center p-3 text-sm font-bold bg-gray-50 hover:bg-lavender-50 transition-colors">
-                        {{ category.name }}
-                        <i class="ph" :class="category.expanded ? 'ph-caret-down' : 'ph-caret-right'"></i>
-                    </button>
-                    <div v-show="category.expanded" class="p-3 space-y-2 bg-white">
-                        <label v-for="(item, iIndex) in category.items" :key="iIndex" class="flex items-center space-x-3 cursor-pointer">
-                            <input type="checkbox" v-model="item.checked" class="w-4 h-4 text-lavender-500 rounded border-gray-300 focus:ring-lavender-400 accent-lavender-500">
-                            <span :class="{'line-through text-gray-400': item.checked, 'text-gray-700': !item.checked}" class="text-sm transition-all">{{ item.name }}</span>
-                        </label>
-                        <div class="flex items-center space-x-2 mt-2 pt-2 border-t border-dashed border-gray-200">
-                            <input type="text" v-model="category.newItem" placeholder="新增細項..." class="text-sm bg-transparent border-none outline-none flex-1 placeholder-gray-300" @keyup.enter="addLuggageItem(category)">
-                            <button @click="addLuggageItem(category)" class="text-lavender-500"><i class="ph-bold ph-plus"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 緊急醫療 -->
-            <div class="bg-red-50 rounded-2xl shadow-sm p-4 border border-red-100">
-                <h3 class="font-bold text-red-700 flex items-center mb-2"><i class="ph-fill ph-warning-circle text-red-500 mr-2 text-xl"></i>緊急聯絡</h3>
-                <div class="flex space-x-4">
-                    <div class="flex-1 bg-white p-2 rounded-xl text-center shadow-sm">
-                        <p class="text-xs text-gray-500">警察</p>
-                        <p class="font-bold text-red-600 text-lg">110</p>
-                    </div>
-                    <div class="flex-1 bg-white p-2 rounded-xl text-center shadow-sm">
-                        <p class="text-xs text-gray-500">救護車/消防</p>
-                        <p class="font-bold text-red-600 text-lg">119</p>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- ==================== 3. 購物清單 ==================== -->
-        <div v-show="activeTab === 'shopping'" class="pt-6 px-5 min-h-[500px]">
-            <div class="grid grid-cols-2 gap-4">
-                <div v-for="item in shoppingList" :key="item.id" class="bg-white rounded-2xl shadow-sm overflow-hidden border border-lavender-50">
-                    <div class="h-32 bg-gray-100 relative">
-                        <img v-if="item.image" :src="item.image" class="w-full h-full object-cover">
-                        <div v-else class="w-full h-full flex items-center justify-center text-gray-300">
-                            <i class="ph ph-image text-3xl"></i>
-                        </div>
-                    </div>
-                    <div class="p-3">
-                        <p class="font-bold text-gray-700 text-sm truncate">{{ item.name }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 空狀態 -->
-            <div v-if="shoppingList.length === 0" class="flex flex-col items-center justify-center mt-20 text-gray-400">
-                <i class="ph-thin ph-shopping-bag text-6xl mb-2 text-lavender-300"></i>
-                <p>還沒有新增想買的東西喔</p>
-            </div>
-
-            <!-- 浮動新增按鈕 (+) -->
-            <button @click="openAddModal('shopping')" class="fixed bottom-6 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-lavender-600 transition-colors z-50">
-                <i class="ph ph-plus text-2xl font-bold"></i>
-            </button>
-        </div>
-
-        <!-- ==================== 4. 花費 ==================== -->
-        <div v-show="activeTab === 'expense'" class="pt-6 px-5 min-h-[500px]">
-            <!-- 總花費 -->
-            <div class="bg-gradient-to-br from-lavender-400 to-lavender-600 rounded-3xl shadow-md p-6 mb-6 text-white relative overflow-hidden">
-                <div class="absolute -right-4 -top-4 opacity-20"><i class="ph-fill ph-wallet text-9xl"></i></div>
-                <p class="text-lavender-100 text-sm mb-1 relative z-10">總花費 (JPY)</p>
-                <p class="text-4xl font-bold relative z-10">? {{ totalExpense.toLocaleString() }}</p>
-            </div>
-
-            <!-- 花費列表 -->
-            <div class="space-y-3">
-                <div v-for="item in expenseList" :key="item.id" class="bg-white rounded-2xl shadow-sm p-4 border border-lavender-50 flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 rounded-full bg-lavender-100 text-lavender-500 flex items-center justify-center">
-                            <i :class="getCategoryIcon(item.category)" class="text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="font-bold text-gray-700 text-sm">{{ item.name }}</p>
-                            <p class="text-xs text-gray-400">{{ item.date }} · {{ item.payment }}</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-bold text-gray-800">? {{ item.amount }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 空狀態 -->
-            <div v-if="expenseList.length === 0" class="flex flex-col items-center justify-center mt-10 text-gray-400">
-                <i class="ph-thin ph-receipt text-6xl mb-2 text-lavender-300"></i>
-                <p>開始記錄甜蜜的花費吧</p>
-            </div>
-
-            <!-- 浮動新增按鈕 (+) -->
-            <button @click="openAddModal('expense')" class="fixed bottom-6 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-lavender-600 transition-colors z-50">
-                <i class="ph ph-plus text-2xl font-bold"></i>
-            </button>
-        </div>
-
-    </main>
-
-    <!-- ==================== 彈出視窗 (Modal) 區域 ==================== -->
-    <div v-if="modal.show" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center pb-0 sm:pb-0">
-        <div class="bg-white w-full sm:w-[400px] rounded-t-3xl sm:rounded-3xl p-6 transform transition-all max-h-[90vh] overflow-y-auto">
-            
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-gray-800">{{ modal.title }}</h2>
-                <button @click="modal.show = false" class="text-gray-400 bg-gray-100 rounded-full p-1"><i class="ph ph-x text-xl"></i></button>
-            </div>
-
-            <!-- 1. 新增/編輯行程表單 -->
-            <div v-if="modal.type === 'itinerary'" class="space-y-4">
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">分類</label>
-                    <select v-model="formData.itinerary.type" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-lavender-400">
-                        <option>景點</option>
-                        <option>住宿</option>
-                        <option>美食</option>
-                        <option>購物</option>
-                        <option>航班</option>
-                        <option>其他</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">名稱</label>
-                    <input type="text" v-model="formData.itinerary.name" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-lavender-400" placeholder="例如: 福岡塔">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1">營業時間</label>
-                        <input type="text" v-model="formData.itinerary.time" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none" placeholder="09:00-18:00">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1">門票</label>
-                        <input type="text" v-model="formData.itinerary.ticket" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none" placeholder="?800 或 免費">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">前往下個行程交通 (交通方式/時間)</label>
-                    <div class="flex space-x-2">
-                        <select v-model="formData.itinerary.transitMode" class="w-1/3 bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none">
-                            <option>步行</option>
-                            <option>開車</option>
-                            <option>大眾運輸</option>
-                        </select>
-                        <input type="text" v-model="formData.itinerary.transitTime" class="w-2/3 bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none" placeholder="例如: 30分鐘">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">特色 & 備註</label>
-                    <textarea v-model="formData.itinerary.note" rows="2" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-lavender-400" placeholder="備註事項..."></textarea>
-                </div>
-                
-                <div class="flex space-x-3 mt-6">
-                    <button v-if="modal.mode === 'edit'" @click="confirmDelete('itinerary')" class="flex-1 bg-red-100 text-red-600 font-bold py-3 rounded-xl">刪除</button>
-                    <button @click="saveItinerary" class="flex-[2] bg-lavender-500 text-white font-bold py-3 rounded-xl shadow-md">儲存行程</button>
-                </div>
-            </div>
-
-            <!-- 2. 新增購物表單 -->
-            <div v-if="modal.type === 'shopping'" class="space-y-4">
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">商品名稱</label>
-                    <input type="text" v-model="formData.shopping.name" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none" placeholder="輸入商品名稱">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">商品照片 (可拍照上傳)</label>
-                    <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 overflow-hidden relative">
-                        <div v-if="!formData.shopping.image" class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <i class="ph ph-camera text-3xl text-gray-400 mb-2"></i>
-                            <p class="text-xs text-gray-500">點擊上傳或拍照</p>
-                        </div>
-                        <img v-else :src="formData.shopping.image" class="w-full h-full object-cover">
-                        <input type="file" accept="image/*" class="hidden" @change="handleImageUpload" />
-                    </label>
-                </div>
-                <button @click="saveShopping" class="w-full bg-lavender-500 text-white font-bold py-3 rounded-xl shadow-md mt-6">儲存清單</button>
-            </div>
-
-            <!-- 3. 新增花費表單 -->
-            <div v-if="modal.type === 'expense'" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1">類別</label>
-                        <select v-model="formData.expense.category" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none">
-                            <option>交通</option><option>飲食</option><option>住宿</option>
-                            <option>門票</option><option>購物</option><option>其他</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1">付款方式</label>
-                        <select v-model="formData.expense.payment" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none">
-                            <option>現金</option><option>信用卡</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">項目名稱</label>
-                    <input type="text" v-model="formData.expense.name" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none" placeholder="例如: 晚餐拉麵">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1">金額 (JPY)</label>
-                        <input type="number" v-model="formData.expense.amount" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none font-bold" placeholder="0">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1">日期</label>
-                        <input type="date" v-model="formData.expense.date" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none text-sm">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">備註</label>
-                    <input type="text" v-model="formData.expense.note" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none" placeholder="可選填">
-                </div>
-                <button @click="saveExpense" class="w-full bg-lavender-500 text-white font-bold py-3 rounded-xl shadow-md mt-6">記錄花費</button>
-            </div>
-
-        </div>
+        <h3 className="font-bold text-gray-800 mt-2">{item.name}</h3>
+        {item.note && <p className="text-xs text-gray-400 mt-2 italic bg-gray-50 p-2 rounded-lg">{item.note}</p>}
+      </div>
     </div>
+  );
 
-</div>
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen bg-white">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mx-auto"></div>
+        <p className="mt-4 text-gray-400 font-bold">即時同步中...</p>
+      </div>
+    </div>
+  );
 
-<script>
-    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+  return (
+    <div className="max-w-md mx-auto bg-[#FDFBFD] min-h-screen relative shadow-2xl pb-24">
+      
+      {/* Header Banner */}
+      <div className="relative h-56 w-full overflow-hidden">
+        <img src="M6cH6f4bdmcJryLEtnmhGktaYkUSfReqd8p9GlWL__1682_1121.jpg" className="w-full h-full object-cover" alt="Fukuoka" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#FDFBFD] via-black/20 to-transparent"></div>
+        <div className="absolute bottom-10 left-6">
+          <h1 className="text-white text-3xl font-black tracking-tight drop-shadow-md">Fukuoka Trip</h1>
+          <div className="flex items-center mt-2 bg-white/20 backdrop-blur-md w-fit px-3 py-1 rounded-full border border-white/30">
+            <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+            <span className="text-white text-[10px] font-bold uppercase tracking-widest">雙人同步已開啟</span>
+          </div>
+        </div>
+      </div>
 
-    createApp({
-        setup() {
-            // UI 狀態
-            const activeTab = ref('itinerary');
-            
-            // 行程日期設定 (5/5 ~ 5/10)
-            const dates = ref([
-                { id: '2026-05-05', day: 'Tue', date: '5/5' },
-                { id: '2026-05-06', day: 'Wed', date: '5/6' },
-                { id: '2026-05-07', day: 'Thu', date: '5/7' },
-                { id: '2026-05-08', day: 'Fri', date: '5/8' },
-                { id: '2026-05-09', day: 'Sat', date: '5/9' },
-                { id: '2026-05-10', day: 'Sun', date: '5/10' },
-            ]);
-            const activeDate = ref('2026-05-05');
+      <div className="px-6 -mt-6 relative z-20">
+        
+        {/* Tab Switcher */}
+        <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 mb-6">
+          {[
+            { id: 'itinerary', icon: <MapPin size={20} />, label: '行程' },
+            { id: 'info', icon: <Suitcase size={20} />, label: '清單' },
+            { id: 'shopping', icon: <ShoppingBasket size={20} />, label: '購物' },
+            { id: 'expense', icon: <CurrencyCircleDollar size={20} />, label: '花費' }
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`flex-1 flex flex-col items-center py-2.5 rounded-xl transition-all ${activeTab === t.id ? 'bg-purple-500 text-white shadow-md' : 'text-gray-400'}`}
+            >
+              {t.icon}
+              <span className="text-[10px] font-bold mt-1">{t.label}</span>
+            </button>
+          ))}
+        </div>
 
-            // 匯率
-            const jpyInput = ref(1000);
-            const calculatedTwd = computed(() => Math.round(jpyInput.value * 0.21)); // 假設匯率0.21
+        {/* --- CONTENT AREA --- */}
+        
+        {activeTab === 'itinerary' && (
+          <div className="space-y-6">
+            {/* Date Selector */}
+            <div className="flex space-x-3 overflow-x-auto no-scrollbar py-2">
+              {[
+                { id: '2026-05-05', d: '5/5' }, { id: '2026-05-06', d: '5/6' },
+                { id: '2026-05-07', d: '5/7' }, { id: '2026-05-08', d: '5/8' },
+                { id: '2026-05-09', d: '5/9' }, { id: '2026-05-10', d: '5/10' }
+              ].map(d => (
+                <button
+                  key={d.id}
+                  onClick={() => setActiveDate(d.id)}
+                  className={`min-w-[56px] py-4 rounded-2xl font-bold transition-all ${activeDate === d.id ? 'bg-purple-500 text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-50'}`}
+                >
+                  {d.d}
+                </button>
+              ))}
+            </div>
 
-            // 彈出視窗狀態
-            const modal = ref({ show: false, type: '', mode: 'add', title: '' });
-            
-            // 表單資料綁定
-            const formData = ref({
-                itinerary: { id: null, type: '景點', name: '', time: '', ticket: '', transitMode: '大眾運輸', transitTime: '30分鐘', note: '' },
-                shopping: { id: null, name: '', image: null },
-                expense: { id: null, category: '飲食', name: '', amount: null, payment: '現金', date: new Date().toISOString().split('T')[0], note: '' }
-            });
+            {/* Itinerary List */}
+            <div className="pt-2">
+              {sharedData.itinerary[activeDate].length > 0 ? (
+                sharedData.itinerary[activeDate].map((item, idx) => (
+                  <ItineraryCard key={item.id} item={item} index={idx} />
+                ))
+              ) : (
+                <div className="text-center py-12 bg-white rounded-3xl border-2 border-dashed border-gray-100 text-gray-300 font-bold">今天還沒有行程安排</div>
+              )}
+              <button 
+                onClick={() => setModal({ show: true, type: 'itinerary' })}
+                className="w-full mt-4 py-4 bg-purple-50 text-purple-500 rounded-2xl font-bold border-2 border-dashed border-purple-100 hover:bg-purple-100 transition-all"
+              >
+                + 新增行程
+              </button>
+            </div>
+          </div>
+        )}
 
-            // --- 資料庫 (使用 ref 模擬) ---
-            
-            // 1. 行程資料庫 (以日期為 key)
-            const itineraryData = ref({
-                '2026-05-05': [
-                    { id: 1, type: '航班', name: '出發前往福岡', time: '08:10-11:20', note: '護照帶了嗎？', transitMode: '大眾運輸', transitTime: '15分鐘' },
-                    { id: 2, type: '住宿', name: '都酒店 博多 先寄放行李', time: '13:00', ticket: '', transitMode: '大眾運輸', transitTime: '40分鐘', note: '博多車站旁' },
-                    { id: 3, type: '景點', name: '太宰府天滿宮', time: '14:30-17:00', ticket: '免費', transitMode: '步行', transitTime: '5分鐘', note: '必吃梅枝餅' }
-                ],
-                '2026-05-06': [
-                    { id: 4, type: '景點', name: '柳川遊船', time: '10:00-12:00', ticket: '?1650', transitMode: '大眾運輸', transitTime: '60分鐘', note: '防曬要做好' }
-                ]
-            });
-
-            // 2. 必備清單
-            const luggageList = ref([
-                { name: '個人文件', expanded: true, items: [{name: '護照', checked: false}, {name: '日幣現金/信用卡', checked: false}, {name: 'VJW QR Code', checked: false}], newItem: '' },
-                { name: '盥洗與個人用品', expanded: false, items: [{name: '牙刷牙膏', checked: false}, {name: '保養品/化妝品', checked: false}], newItem: '' },
-                { name: '個人藥品', expanded: false, items: [{name: '感冒藥', checked: false}, {name: '腸胃藥', checked: false}, {name: 'OK繃', checked: false}], newItem: '' }
-            ]);
-
-            // 3. 購物清單
-            const shoppingList = ref([]);
-
-            // 4. 花費紀錄
-            const expenseList = ref([
-                { id: 1, category: '交通', name: '西瓜卡儲值', amount: 3000, payment: '現金', date: '2026-05-05', note: '' }
-            ]);
-
-            // --- 計算屬性 ---
-            const currentItinerary = computed(() => {
-                return itineraryData.value[activeDate.value] || [];
-            });
-
-            const totalExpense = computed(() => {
-                return expenseList.value.reduce((sum, item) => sum + Number(item.amount), 0);
-            });
-
-            // --- 方法 ---
-
-            const selectDate = (dateId) => {
-                activeDate.value = dateId;
-                // 重新初始化拖曳功能
-                nextTick(() => { initSortable(); });
-            };
-
-            const openMap = (keyword) => {
-                // 點擊卡片直接開 Google Maps 導航搜尋
-                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(keyword)}`, '_blank');
-            };
-
-            // Modal 控制
-            const openAddModal = (type) => {
-                modal.value = { show: true, type: type, mode: 'add', title: `新增${type === 'itinerary'?'行程': type === 'shopping'?'購物':'花費'}` };
-                // Reset form
-                if(type === 'itinerary') formData.value.itinerary = { id: null, type: '景點', name: '', time: '', ticket: '', transitMode: '大眾運輸', transitTime: '30分鐘', note: '' };
-                if(type === 'shopping') formData.value.shopping = { id: null, name: '', image: null };
-                if(type === 'expense') formData.value.expense = { id: null, category: '飲食', name: '', amount: null, payment: '現金', date: new Date().toISOString().split('T')[0], note: '' };
-            };
-
-            const openEditModal = (item) => {
-                modal.value = { show: true, type: 'itinerary', mode: 'edit', title: '編輯行程' };
-                formData.value.itinerary = { ...item };
-            };
-
-            // 儲存邏輯
-            const saveItinerary = () => {
-                if(!formData.value.itinerary.name) return alert('請輸入名稱');
-                if(!itineraryData.value[activeDate.value]) itineraryData.value[activeDate.value] = [];
-                
-                if(modal.value.mode === 'add') {
-                    formData.value.itinerary.id = Date.now();
-                    itineraryData.value[activeDate.value].push({ ...formData.value.itinerary });
-                } else {
-                    const index = itineraryData.value[activeDate.value].findIndex(i => i.id === formData.value.itinerary.id);
-                    if(index > -1) itineraryData.value[activeDate.value][index] = { ...formData.value.itinerary };
-                }
-                modal.value.show = false;
-            };
-
-            const confirmDelete = (type) => {
-                if(confirm('確定要刪除這個行程嗎？此操作無法還原。')) {
-                    if(type === 'itinerary') {
-                        itineraryData.value[activeDate.value] = itineraryData.value[activeDate.value].filter(i => i.id !== formData.value.itinerary.id);
+        {activeTab === 'info' && (
+          <div className="space-y-6 animate-in slide-in-from-bottom duration-300">
+            {/* PreCheck & Luggage Section */}
+            {['preCheck', 'luggage'].map(type => (
+              <div key={type} className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-50">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="font-black text-gray-800 flex items-center tracking-tight">
+                    {type === 'preCheck' ? <CheckSquare className="mr-2 text-orange-400" /> : <Suitcase className="mr-2 text-purple-500" />}
+                    {type === 'preCheck' ? '行前檢查' : '行李清單'}
+                  </h2>
+                  <button onClick={() => {
+                    const name = prompt("新增分類名稱:");
+                    if(name) {
+                      const newData = {...sharedData};
+                      newData[type].push({ id: Date.now().toString(), name, items: [] });
+                      syncUpdate(newData);
                     }
-                    modal.value.show = false;
+                  }} className="text-xs font-bold text-purple-500 bg-purple-50 px-3 py-1.5 rounded-full">+ 分類</button>
+                </div>
+                {sharedData[type].map(cat => (
+                  <div key={cat.id} className="mb-6 last:mb-0">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{cat.name}</span>
+                      <button onClick={() => {
+                        const newData = {...sharedData};
+                        newData[type] = newData[type].filter(c => c.id !== cat.id);
+                        syncUpdate(newData);
+                      }} className="text-gray-200"><Trash2 size={12}/></button>
+                    </div>
+                    <div className="space-y-3">
+                      {cat.items.map(item => (
+                        <div key={item.id} className="flex items-center justify-between group">
+                          <label className="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" checked={item.checked} onChange={() => toggleCheck(type, cat.id, item.id)} className="w-5 h-5 rounded-lg accent-purple-500" />
+                            <span className={`text-sm font-bold ${item.checked ? 'line-through text-gray-300 italic' : 'text-gray-700'}`}>{item.name}</span>
+                          </label>
+                          <button onClick={() => deleteItem(type, cat.id, item.id)} className="opacity-0 group-hover:opacity-100 text-gray-200"><X size={14}/></button>
+                        </div>
+                      ))}
+                      <input 
+                        type="text" 
+                        onKeyDown={(e) => {
+                          if(e.key === 'Enter' && e.target.value) {
+                            const newData = {...sharedData};
+                            const c = newData[type].find(i => i.id === cat.id);
+                            c.items.push({ id: Date.now().toString(), name: e.target.value, checked: false });
+                            syncUpdate(newData);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="w-full bg-gray-50 border-none text-[11px] p-2.5 rounded-xl outline-none focus:ring-1 ring-purple-100" 
+                        placeholder="新增細項..." 
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'shopping' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-black text-gray-800">購物清單同步</h2>
+              <button onClick={() => {
+                const name = prompt("分類名稱 (如: 藥妝):");
+                if(name) {
+                  const newData = {...sharedData};
+                  newData.shopping.push({ id: Date.now().toString(), name, items: [] });
+                  syncUpdate(newData);
                 }
-            };
+              }} className="text-xs font-bold text-white bg-purple-500 px-4 py-2 rounded-full shadow-lg">+ 新增分類</button>
+            </div>
+            {sharedData.shopping.map(cat => (
+              <div key={cat.id} className="bg-white rounded-[32px] shadow-sm border border-gray-50 overflow-hidden">
+                <div className="bg-purple-50 px-6 py-3 flex justify-between items-center">
+                  <span className="font-black text-purple-600 text-xs tracking-widest">{cat.name}</span>
+                  <button onClick={() => {
+                    const newData = {...sharedData};
+                    newData.shopping = newData.shopping.filter(c => c.id !== cat.id);
+                    syncUpdate(newData);
+                  }} className="text-purple-200"><Trash2 size={14}/></button>
+                </div>
+                <div className="p-6 space-y-4">
+                  {cat.items.map(item => (
+                    <div key={item.id} className="flex items-start justify-between group">
+                      <div className="flex space-x-3">
+                        <input type="checkbox" checked={item.checked} onChange={() => toggleCheck('shopping', cat.id, item.id)} className="mt-1 w-5 h-5 rounded-lg accent-purple-500" />
+                        <div>
+                          <p className={`text-sm font-bold ${item.checked ? 'line-through text-gray-300 italic' : 'text-gray-800'}`}>{item.name}</p>
+                          <div className="flex gap-1 mt-1">
+                            {item.tags?.map(t => <span key={t} className="text-[9px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded font-black">#{t}</span>)}
+                          </div>
+                        </div>
+                      </div>
+                      <button onClick={() => deleteItem('shopping', cat.id, item.id)} className="opacity-0 group-hover:opacity-100 text-gray-200"><X size={14}/></button>
+                    </div>
+                  ))}
+                  <button onClick={() => setModal({ show: true, type: 'shoppingItem', data: cat })} className="w-full py-3 bg-gray-50 rounded-2xl text-[11px] font-bold text-gray-400 hover:text-purple-400 transition-all">+ 新增商品</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-            const saveShopping = () => {
-                if(!formData.value.shopping.name) return alert('請輸入商品名稱');
-                shoppingList.value.push({ ...formData.value.shopping, id: Date.now() });
-                modal.value.show = false;
-            };
+        {activeTab === 'expense' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-8 rounded-[40px] text-white shadow-xl text-center relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+              <p className="text-[10px] opacity-70 font-black tracking-widest uppercase mb-1">共同花費即時累計</p>
+              <h2 className="text-4xl font-black italic tracking-tighter">¥ {sharedData.expenses.reduce((a, b) => a + Number(b.amount), 0).toLocaleString()}</h2>
+              <div className="mt-4 text-[10px] font-bold bg-white/20 py-1 px-3 rounded-full w-fit mx-auto">約 NT$ {Math.round(sharedData.expenses.reduce((a, b) => a + Number(b.amount), 0) * 0.21).toLocaleString()}</div>
+            </div>
+            <div className="space-y-3">
+              {sharedData.expenses.map((ex, idx) => (
+                <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-50 flex justify-between items-center group">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-purple-50 p-2.5 rounded-xl text-purple-500"><CurrencyCircleDollar size={20} /></div>
+                    <div>
+                      <p className="font-bold text-gray-800 text-sm">{ex.name}</p>
+                      <p className="text-[10px] font-black text-gray-400">{ex.date} · {ex.pay}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <span className="font-black text-purple-600">¥{Number(ex.amount).toLocaleString()}</span>
+                    <button onClick={() => {
+                      const newData = {...sharedData};
+                      newData.expenses.splice(idx, 1);
+                      syncUpdate(newData);
+                    }} className="text-gray-200 group-hover:text-red-400 transition-colors"><X size={16}/></button>
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => setModal({ show: true, type: 'expense' })} className="fixed bottom-28 right-8 w-14 h-14 bg-purple-500 text-white rounded-full shadow-2xl flex items-center justify-center animate-bounce z-50 shadow-purple-200"><Plus size={28} /></button>
+            </div>
+          </div>
+        )}
+      </div>
 
-            const saveExpense = () => {
-                if(!formData.value.expense.name || !formData.value.expense.amount) return alert('請輸入名稱與金額');
-                expenseList.value.unshift({ ...formData.value.expense, id: Date.now() });
-                modal.value.show = false;
-            };
+      {/* --- MODAL SYSTEM --- */}
+      {modal.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center">
+          <div className="bg-white w-full max-w-md rounded-t-[40px] p-8 animate-in slide-in-from-bottom duration-300 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-xl font-black text-gray-800">
+                {modal.type === 'itinerary' && '新增雲端行程'}
+                {modal.type === 'shoppingItem' && `新增到 ${modal.data.name}`}
+                {modal.type === 'expense' && '記錄同步支出'}
+              </h2>
+              <button onClick={() => setModal({ show: false, type: '', data: null })} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button>
+            </div>
 
-            // 處理圖片上傳預覽 (Base64)
-            const handleImageUpload = (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        formData.value.shopping.image = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
+            {modal.type === 'itinerary' && (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const newItem = {
+                  id: Date.now().toString(),
+                  name: form.name.value,
+                  time: form.time.value,
+                  category: form.category.value,
+                  mapUrl: form.mapUrl.value,
+                  note: form.note.value,
+                  remind: form.remind.checked
+                };
+                const newData = {...sharedData};
+                newData.itinerary[activeDate].push(newItem);
+                // 依時間排序
+                newData.itinerary[activeDate].sort((a,b) => a.time.localeCompare(b.time));
+                await syncUpdate(newData);
+                setModal({ show: false });
+              }} className="space-y-4">
+                <div className="space-y-1">
+                   <p className="text-[10px] font-black text-gray-300 uppercase ml-1">行程名稱</p>
+                   <input name="name" required className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold focus:ring-2 ring-purple-100 transition-all" placeholder="例如：由布院之森" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1">
+                     <p className="text-[10px] font-black text-gray-300 uppercase ml-1">預計時間</p>
+                     <input name="time" type="time" required className="w-full bg-gray-50 p-4 rounded-2xl outline-none" />
+                   </div>
+                   <div className="space-y-1">
+                     <p className="text-[10px] font-black text-gray-300 uppercase ml-1">類別</p>
+                     <select name="category" className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold">
+                       <option>景點</option><option>美食</option><option>交通</option><option>住宿</option><option>購物</option>
+                     </select>
+                   </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-gray-300 uppercase ml-1">地圖連結</p>
+                  <input name="mapUrl" className="w-full bg-gray-50 p-4 rounded-2xl outline-none text-sm" placeholder="貼上 Google Maps URL" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-gray-300 uppercase ml-1">備註</p>
+                  <textarea name="note" className="w-full bg-gray-50 p-4 rounded-2xl outline-none text-sm" rows="2" placeholder="備註或是必點美食..." />
+                </div>
+                <div className="flex items-center justify-between bg-orange-50 p-5 rounded-3xl border border-orange-100">
+                  <div className="flex items-center text-orange-600 font-bold text-sm"><Bell size={18} className="mr-2"/> 行程 5 分鐘前通知我</div>
+                  <input name="remind" type="checkbox" defaultChecked className="w-6 h-6 rounded-lg accent-orange-500" />
+                </div>
+                <button type="submit" className="w-full bg-purple-500 text-white font-black py-5 rounded-3xl shadow-xl shadow-purple-100 transition-transform active:scale-95">同步上傳行程</button>
+              </form>
+            )}
 
-            // 行李清單新增細項
-            const addLuggageItem = (category) => {
-                if(category.newItem.trim()) {
-                    category.items.push({ name: category.newItem.trim(), checked: false });
-                    category.newItem = '';
-                }
-            };
+            {modal.type === 'expense' && (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const newEx = {
+                  name: form.name.value,
+                  amount: form.amount.value,
+                  pay: form.pay.value,
+                  date: new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })
+                };
+                const newData = {...sharedData};
+                newData.expenses.unshift(newEx);
+                await syncUpdate(newData);
+                setModal({ show: false });
+              }} className="space-y-4">
+                <input name="name" required className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="消費項目" />
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-purple-600">¥</span>
+                  <input name="amount" type="number" required className="w-full bg-gray-50 p-4 pl-10 rounded-2xl outline-none text-2xl font-black text-purple-600" placeholder="0" />
+                </div>
+                <select name="pay" className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold">
+                  <option>現金支付</option><option>信用卡</option><option>Suica/IC</option>
+                </select>
+                <button type="submit" className="w-full bg-purple-500 text-white font-black py-5 rounded-3xl">同步入帳</button>
+              </form>
+            )}
 
-            const getCategoryIcon = (cat) => {
-                const icons = { '交通': 'ph-train', '飲食': 'ph-fork-knife', '住宿': 'ph-bed', '門票': 'ph-ticket', '購物': 'ph-bag', '其他': 'ph-dots-three' };
-                return icons[cat] || 'ph-receipt';
-            };
-
-            // 拖曳排序初始化 (SortableJS)
-            let sortableInstance = null;
-            const initSortable = () => {
-                const el = document.getElementById('itinerary-list');
-                if(!el) return;
-                if(sortableInstance) sortableInstance.destroy(); // 防止重複綁定
-                
-                sortableInstance = Sortable.create(el, {
-                    animation: 150,
-                    ghostClass: 'sortable-ghost',
-                    dragClass: 'sortable-drag',
-                    delay: 100, // 手機端需要稍微延遲長按才觸發拖曳
-                    delayOnTouchOnly: true,
-                    onEnd: (evt) => {
-                        // 同步拖曳後的順序到 Vue 資料中
-                        const list = itineraryData.value[activeDate.value];
-                        const item = list.splice(evt.oldIndex, 1)[0];
-                        list.splice(evt.newIndex, 0, item);
-                    }
+            {modal.type === 'shoppingItem' && (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const newData = {...sharedData};
+                const cat = newData.shopping.find(c => c.id === modal.data.id);
+                cat.items.push({ 
+                  id: Date.now().toString(), 
+                  name: form.name.value, 
+                  checked: false, 
+                  tags: form.tag.value ? [form.tag.value] : [] 
                 });
-            };
-
-            onMounted(() => {
-                initSortable();
-            });
-
-            return {
-                activeTab, dates, activeDate, selectDate,
-                jpyInput, calculatedTwd,
-                currentItinerary, luggageList, shoppingList, expenseList, totalExpense,
-                modal, formData, openAddModal, openEditModal, openMap,
-                saveItinerary, confirmDelete, saveShopping, saveExpense,
-                handleImageUpload, addLuggageItem, getCategoryIcon
-            };
-        }
-    }).mount('#app');
-</script>
-</body>
-
-</html>
+                await syncUpdate(newData);
+                setModal({ show: false });
+              }} className="space-y-4">
+                <input name="name" required className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="商品名稱" />
+                <select name="tag" className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold">
+                  <option value="">選擇標籤</option>
+                  <option value="必買">必買</option>
+                  <option value="伴手禮">伴手禮</option>
+                  <option value="代購">代購</option>
+                  <option value="自己用">自己用</option>
+                </select>
+                <button type="submit" className="w-full bg-purple-500 text-white font-black py-5 rounded-3xl">加入共同清單</button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
