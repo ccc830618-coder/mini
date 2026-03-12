@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>福岡蜜月旅行</title>
+    <title>福岡蜜月旅行 App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Firebase SDK -->
+    
     <script type="module">
+        // 導入 Firebase 模組
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        window.FirebaseSDK = { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, getFirestore, doc, setDoc, onSnapshot };
+        // 將 Firebase 掛載到 window 讓 Vue 可以使用
+        window.FB = { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, getFirestore, doc, setDoc, onSnapshot };
     </script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -31,135 +34,135 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        body { background-color: #FDFBFD; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        body { background-color: #FDFBFD; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s ease-out; }
+        @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
-<body class="text-gray-700 antialiased">
+<body class="text-gray-700">
 
-<div id="app" class="max-w-md mx-auto bg-lavender-50 min-h-screen relative shadow-xl overflow-hidden">
+<div id="app" class="max-w-md mx-auto bg-lavender-50 min-h-screen relative shadow-2xl overflow-hidden">
     
-    <!-- 頁首 Banner -->
-    <header class="relative h-[220px] w-full bg-lavender-200">
-        <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80" alt="Fukuoka" class="w-full h-full object-cover">
-        <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-        <div class="relative text-center z-10 pt-10">
-            <h1 class="text-white text-3xl font-black tracking-widest drop-shadow-md">FUKUOKA</h1>
-            <p class="text-lavender-100 text-xs font-bold mt-1 tracking-[0.3em]">HONEYMOON 2026</p>
+    <!-- Header -->
+    <header class="relative h-[200px] w-full bg-lavender-300">
+        <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover opacity-60">
+        <div class="absolute inset-0 bg-gradient-to-t from-lavender-500/50 to-transparent flex flex-col items-center justify-center text-white">
+            <h1 class="text-3xl font-black tracking-widest">FUKUOKA</h1>
+            <p class="text-xs font-bold tracking-[0.4em] mt-1">HONEYMOON 2026</p>
         </div>
         
-        <!-- 導覽切換 -->
-        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-1 bg-white/20 backdrop-blur-md p-1 rounded-2xl border border-white/30 z-20">
-            <button @click="activeTab = 'itinerary'" :class="activeTab === 'itinerary' ? 'bg-white text-lavender-600 shadow-sm' : 'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">行程</button>
-            <button @click="activeTab = 'info'" :class="activeTab === 'info' ? 'bg-white text-lavender-600 shadow-sm' : 'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">清單</button>
-            <button @click="activeTab = 'shopping'" :class="activeTab === 'shopping' ? 'bg-white text-lavender-600 shadow-sm' : 'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">購物</button>
-            <button @click="activeTab = 'expense'" :class="activeTab === 'expense' ? 'bg-white text-lavender-600 shadow-sm' : 'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">花費</button>
+        <!-- Tab Bar -->
+        <div class="absolute -bottom-1 left-0 right-0 px-4">
+            <div class="bg-white/90 backdrop-blur shadow-lg rounded-2xl p-1 flex border border-white">
+                <button v-for="t in ['itinerary', 'luggage', 'shopping', 'expense']" :key="t"
+                    @click="activeTab = t"
+                    :class="activeTab === t ? 'bg-lavender-500 text-white' : 'text-lavender-400'"
+                    class="flex-1 py-2 rounded-xl text-xs font-black transition-all">
+                    {{ t === 'itinerary' ? '行程' : t === 'luggage' ? '清單' : t === 'shopping' ? '購物' : '花費' }}
+                </button>
+            </div>
         </div>
     </header>
 
-    <main class="bg-lavender-50 rounded-t-[32px] -mt-6 relative z-10 min-h-[calc(100vh-156px)] pb-24 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+    <main class="pt-8 px-5 pb-24">
         
-        <!-- 1. 行程分頁 -->
-        <div v-show="activeTab === 'itinerary'" class="pt-6 px-5">
-            <div class="flex overflow-x-auto no-scrollbar space-x-4 pb-4">
-                <div v-for="date in dates" :key="date.id" @click="activeDate = date.id" 
-                     class="flex flex-col items-center justify-center min-w-[62px] h-[78px] rounded-2xl transition-all shadow-sm"
-                     :class="activeDate === date.id ? 'bg-lavender-500 text-white' : 'bg-white text-gray-400 border border-lavender-50'">
-                    <span class="text-xl font-bold">{{ date.day }}</span>
-                    <span class="text-[10px] mt-1 font-bold">{{ date.date }}</span>
-                </div>
-            </div>
-
-            <div class="space-y-4 mt-4">
-                <div v-for="(item, idx) in itinerary[activeDate]" :key="idx" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative">
-                    <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover">
-                    <div class="p-4 flex justify-between items-center">
-                        <div>
-                            <span class="text-[10px] font-black text-lavender-500 bg-lavender-50 px-2 py-0.5 rounded uppercase tracking-wider">{{ item.time }}</span>
-                            <h3 class="text-lg font-bold text-gray-800 mt-1">{{ item.name }}</h3>
-                        </div>
-                        <button @click="deleteItinerary(idx)" class="text-gray-200 hover:text-red-400"><i class="ph ph-trash"></i></button>
-                    </div>
-                </div>
-            </div>
-            <button @click="openAddModal('itinerary')" class="fixed bottom-8 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center z-50"><i class="ph ph-plus text-2xl font-bold"></i></button>
+        <!-- 雲端狀態提示 -->
+        <div v-if="loading" class="text-center py-10">
+            <i class="ph ph-cloud-arrow-down text-3xl text-lavender-300 animate-pulse"></i>
+            <p class="text-xs text-lavender-400 font-bold mt-2">正在從雲端同步你的蜜月資料...</p>
         </div>
 
-        <!-- 2. 清單分頁 (包含您要求的行李清單修改) -->
-        <div v-show="activeTab === 'info'" class="pt-6 px-5 space-y-6">
-            <div class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden">
-                <div class="p-6 pb-2 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-800 flex items-center"><i class="ph-fill ph-suitcase mr-2 text-lavender-500"></i>行李清單</h3>
-                    <button @click="addListCategory" class="text-xs bg-lavender-50 text-lavender-500 px-3 py-1 rounded-full font-black">+ 分類</button>
+        <div v-else>
+            <!-- 1. 行程分頁 -->
+            <div v-if="activeTab === 'itinerary'" class="space-y-6">
+                <div class="flex space-x-3 overflow-x-auto no-scrollbar pb-2">
+                    <button v-for="d in dates" :key="d.id" @click="activeDate = d.id"
+                        :class="activeDate === d.id ? 'bg-lavender-500 text-white' : 'bg-white text-lavender-300'"
+                        class="min-w-[60px] h-16 rounded-2xl flex flex-col items-center justify-center shadow-sm border border-lavender-100 font-bold">
+                        <span class="text-lg">{{ d.date.split('/')[1] }}</span>
+                        <span class="text-[10px] uppercase">{{ d.day }}</span>
+                    </button>
                 </div>
                 
-                <div v-for="(cat, cIdx) in luggage" :key="cIdx" class="p-6 pt-4 border-b border-gray-50 last:border-0">
-                    <div class="flex justify-between items-center mb-4">
-                        <input v-model="cat.name" @change="syncData" class="text-xs font-black text-lavender-600 uppercase tracking-widest bg-transparent outline-none w-full" placeholder="分類名稱...">
-                        <button @click="deleteCategory(cIdx)" class="text-gray-200 ml-2"><i class="ph ph-trash"></i></button>
+                <div class="space-y-4">
+                    <div v-for="(item, idx) in (itinerary[activeDate] || [])" :key="idx" class="bg-white p-4 rounded-3xl shadow-sm border border-lavender-100 flex justify-between items-center">
+                        <div>
+                            <span class="text-[10px] font-black text-lavender-500 bg-lavender-50 px-2 py-0.5 rounded">{{ item.time }}</span>
+                            <h3 class="font-bold text-gray-800 mt-1">{{ item.name }}</h3>
+                        </div>
+                        <button @click="removeItem('itinerary', idx)" class="text-gray-200"><i class="ph ph-trash"></i></button>
+                    </div>
+                    <button @click="openModal('itinerary')" class="w-full py-6 border-2 border-dashed border-lavender-200 rounded-3xl text-lavender-300 font-bold">+ 新增行程</button>
+                </div>
+            </div>
+
+            <!-- 2. 行李清單 (核心功能：手動更新與刪除) -->
+            <div v-if="activeTab === 'luggage'" class="space-y-6">
+                <div class="flex justify-between items-center px-2">
+                    <h3 class="font-black text-xl text-gray-800">行李檢查</h3>
+                    <button @click="addCategory" class="bg-lavender-500 text-white text-[10px] px-3 py-1.5 rounded-full font-black shadow-md">+ 新增分類</button>
+                </div>
+
+                <div v-for="(cat, cIdx) in luggage" :key="cIdx" class="bg-white rounded-[32px] p-6 shadow-sm border border-lavender-100">
+                    <div class="flex justify-between items-center mb-4 group">
+                        <input v-model="cat.name" @change="saveToCloud" class="font-black text-lavender-600 bg-transparent outline-none w-full" placeholder="輸入分類名稱...">
+                        <button @click="removeCategory(cIdx)" class="text-gray-200 hover:text-red-400"><i class="ph ph-trash"></i></button>
                     </div>
                     <div class="space-y-3">
                         <div v-for="(item, iIdx) in cat.items" :key="iIdx" class="flex items-center justify-between group">
-                            <label class="flex items-center space-x-3 cursor-pointer flex-1">
-                                <input type="checkbox" v-model="item.done" @change="syncData" class="w-5 h-5 accent-lavender-500 rounded-lg">
-                                <input v-model="item.name" @change="syncData" :class="item.done ? 'text-gray-300 line-through' : 'text-sm font-medium text-gray-700'" class="bg-transparent outline-none w-full">
+                            <label class="flex items-center space-x-3 flex-1 cursor-pointer">
+                                <input type="checkbox" v-model="item.done" @change="saveToCloud" class="w-5 h-5 accent-lavender-500 rounded-lg">
+                                <input v-model="item.name" @change="saveToCloud" :class="item.done ? 'text-gray-300 line-through italic' : 'text-sm font-medium'" class="bg-transparent outline-none w-full">
                             </label>
-                            <button @click="deleteItem(cIdx, iIdx)" class="text-gray-200"><i class="ph ph-x-circle text-lg"></i></button>
+                            <button @click="removeSubItem(cIdx, iIdx)" class="text-gray-200"><i class="ph ph-x-circle text-lg"></i></button>
                         </div>
-                        <button @click="addItem(cIdx)" class="text-[10px] text-lavender-400 font-black mt-3">+ 新增細項</button>
+                        <button @click="addSubItem(cIdx)" class="text-[10px] text-lavender-400 font-black mt-2 bg-lavender-50 px-2 py-1 rounded">+ 新增項目</button>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 3. 購物與 4. 花費 (略，邏輯與上面相同) -->
-        <div v-show="activeTab === 'shopping'" class="pt-6 px-5 space-y-4">
-            <div v-for="(cat, cIdx) in shopping" :key="cIdx" class="space-y-4">
-                <h3 class="font-black text-lg text-gray-700">{{ cat.name }}</h3>
-                <div v-for="(item, iIdx) in cat.items" :key="iIdx" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden flex h-24">
-                    <div class="w-24 bg-lavender-50 flex-shrink-0">
-                        <img v-if="item.image" :src="item.image" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex-1 p-3 flex justify-between items-center">
-                        <span :class="item.done ? 'line-through text-gray-300' : 'font-bold'">{{ item.name }}</span>
-                        <input type="checkbox" v-model="item.done" @change="syncData" class="w-6 h-6 accent-lavender-500">
-                    </div>
+            <!-- 3. 購物與 4. 花費 (簡化版邏輯) -->
+            <div v-if="activeTab === 'shopping'" class="space-y-4">
+                <div v-for="(item, idx) in shopping" :key="idx" class="bg-white p-4 rounded-3xl shadow-sm border border-lavender-100 flex justify-between items-center">
+                    <span :class="item.done ? 'line-through text-gray-300' : 'font-bold'">{{ item.name }}</span>
+                    <input type="checkbox" v-model="item.done" @change="saveToCloud" class="w-6 h-6 accent-lavender-500">
                 </div>
+                <button @click="openModal('shopping')" class="w-full py-4 border-2 border-dashed border-lavender-200 rounded-3xl text-lavender-300 font-bold">+ 加入購物清單</button>
             </div>
-        </div>
 
-        <div v-show="activeTab === 'expense'" class="pt-6 px-5">
-            <div class="bg-lavender-500 p-8 rounded-[32px] text-white shadow-xl text-center mb-6">
-                <h2 class="text-4xl font-black">NT$ {{ totalExpense }}</h2>
-            </div>
-            <div class="space-y-3">
-                <div v-for="(exp, idx) in expenses" :key="idx" class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-lavender-50">
-                    <span class="font-bold">{{ exp.name }}</span>
-                    <span class="font-black text-lavender-600">NT$ {{ exp.amount }}</span>
+            <div v-if="activeTab === 'expense'" class="space-y-6">
+                <div class="bg-gradient-to-br from-lavender-500 to-lavender-600 p-8 rounded-[32px] text-white shadow-xl text-center">
+                    <p class="text-[10px] opacity-70 font-black tracking-widest uppercase mb-1">Total Expense (TWD)</p>
+                    <h2 class="text-4xl font-black">NT$ {{ totalExpense.toLocaleString() }}</h2>
                 </div>
-                <button @click="openAddModal('expense')" class="w-full py-4 border-2 border-dashed border-lavender-200 rounded-3xl text-lavender-300 font-bold">+ 新增支出</button>
+                <div class="space-y-3">
+                    <div v-for="(exp, idx) in expenses" :key="idx" class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-lavender-50">
+                        <span class="font-bold">{{ exp.name }}</span>
+                        <div class="flex items-center space-x-4">
+                            <span class="font-black text-lavender-600">NT$ {{ exp.amount }}</span>
+                            <button @click="removeItem('expense', idx)" class="text-gray-200">✕</button>
+                        </div>
+                    </div>
+                    <button @click="openModal('expense')" class="w-full py-4 border-2 border-dashed border-lavender-200 rounded-3xl text-lavender-300 font-bold">+ 紀錄花費</button>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- 彈窗 -->
+    <!-- Modal -->
     <div v-if="modal.show" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center">
-        <div class="bg-white w-full max-w-md rounded-t-[40px] p-8 animate-slide-up">
-            <h2 class="text-xl font-black mb-6">{{ modal.title }}</h2>
-            <div v-if="modal.type === 'itinerary'" class="space-y-4">
-                <input v-model="form.name" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="行程名稱">
-                <input v-model="form.time" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="時間 (08:00)">
-                <button @click="saveItinerary" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl">確認新增</button>
+        <div class="bg-white w-full max-w-md rounded-t-[40px] p-8 animate-slide-up shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black text-gray-800">{{ modal.title }}</h2>
+                <button @click="modal.show = false" class="text-gray-300"><i class="ph ph-x text-2xl"></i></button>
             </div>
-            <div v-if="modal.type === 'expense'" class="space-y-4">
-                <input v-model="form.name" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="項目">
-                <input type="number" v-model="form.amount" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="金額">
-                <button @click="saveExpense" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl">紀錄支出</button>
+            <div class="space-y-4">
+                <input v-model="form.name" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold text-lg" placeholder="名稱">
+                <input v-if="modal.type === 'itinerary'" v-model="form.time" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold" placeholder="時間 (09:00)">
+                <input v-if="modal.type === 'expense'" type="number" v-model="form.amount" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-black text-2xl" placeholder="NT$ 金額">
+                <button @click="saveForm" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl shadow-lg active:scale-95 transition-all">確認儲存</button>
             </div>
-            <button @click="modal.show = false" class="w-full mt-4 text-gray-400 font-bold">取消</button>
         </div>
     </div>
 </div>
@@ -171,10 +174,12 @@ createApp({
     setup() {
         const activeTab = ref('itinerary');
         const activeDate = ref('2026-05-05');
-        const luggage = ref([{ name: '衣物相關', items: [] }]);
+        const loading = ref(true);
+        const luggage = ref([]);
         const itinerary = ref({'2026-05-05': [], '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []});
-        const shopping = ref([{ name: '藥妝', items: [] }]);
+        const shopping = ref([]);
         const expenses = ref([]);
+        
         const modal = ref({ show: false, type: '', title: '' });
         const form = ref({ name: '', time: '', amount: null });
 
@@ -184,63 +189,97 @@ createApp({
             { id: '2026-05-09', day: 'Sat', date: '5/9' }, { id: '2026-05-10', day: 'Sun', date: '5/10' }
         ];
 
-        // Firebase 邏輯
-        let db, appId, userId;
+        // --- Firebase 雲端連接邏輯 ---
+        let db, appId;
+
         const initFirebase = async () => {
-            const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, doc, setDoc, onSnapshot } = window.FirebaseSDK;
+            const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, doc, setDoc, onSnapshot, signInWithCustomToken } = window.FB;
+            
             const config = JSON.parse(__firebase_config);
             const app = initializeApp(config);
             const auth = getAuth(app);
             db = getFirestore(app);
-            appId = typeof __app_id !== 'undefined' ? __app_id : 'fukuoka-trip';
+            appId = typeof __app_id !== 'undefined' ? __app_id : 'fukuoka-honeymoon-app';
 
-            await signInAnonymously(auth);
+            // 認證
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+
             onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    userId = user.uid;
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'tripData');
+                    // 監聽雲端資料庫
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'userTripData');
                     onSnapshot(docRef, (snap) => {
                         if (snap.exists()) {
-                            const data = snap.data();
-                            if (data.luggage) luggage.value = data.luggage;
-                            if (data.itinerary) itinerary.value = data.itinerary;
-                            if (data.shopping) shopping.value = data.shopping;
-                            if (data.expenses) expenses.value = data.expenses;
+                            const cloudData = snap.data();
+                            if (cloudData.luggage) luggage.value = cloudData.luggage;
+                            if (cloudData.itinerary) itinerary.value = cloudData.itinerary;
+                            if (cloudData.shopping) shopping.value = cloudData.shopping;
+                            if (cloudData.expenses) expenses.value = cloudData.expenses;
+                        } else {
+                            // 初始化空資料庫
+                            saveToCloud();
                         }
+                        loading.value = false;
+                    }, (err) => {
+                        console.error("雲端同步失敗", err);
+                        loading.value = false;
                     });
                 }
             });
         };
 
-        const syncData = async () => {
-            if (!db || !userId) return;
-            await window.FirebaseSDK.setDoc(window.FirebaseSDK.doc(db, 'artifacts', appId, 'public', 'data', 'tripData'), {
-                luggage: luggage.value,
-                itinerary: itinerary.value,
-                shopping: shopping.value,
-                expenses: expenses.value
-            }, { merge: true });
+        const saveToCloud = async () => {
+            if (!db) return;
+            try {
+                const docRef = window.FB.doc(db, 'artifacts', appId, 'public', 'data', 'userTripData');
+                await window.FB.setDoc(docRef, {
+                    luggage: luggage.value,
+                    itinerary: itinerary.value,
+                    shopping: shopping.value,
+                    expenses: expenses.value,
+                    lastUpdate: new Date()
+                }, { merge: true });
+            } catch (e) {
+                console.error("存檔失敗", e);
+            }
         };
 
-        // 功能邏輯
-        const addListCategory = () => { luggage.value.push({ name: '新分類', items: [] }); syncData(); };
-        const deleteCategory = (idx) => { luggage.value.splice(idx, 1); syncData(); };
-        const addItem = (idx) => { luggage.value[idx].items.push({ name: '新細項', done: false }); syncData(); };
-        const deleteItem = (cIdx, iIdx) => { luggage.value[cIdx].items.splice(iIdx, 1); syncData(); };
-        
-        const openAddModal = (type) => { modal.value = { show: true, type, title: type === 'itinerary' ? '新增行程' : '新增支出' }; form.value = { name: '', time: '', amount: null }; };
-        const saveItinerary = () => { itinerary.value[activeDate.value].push({...form.value}); syncData(); modal.value.show = false; };
-        const deleteItinerary = (idx) => { itinerary.value[activeDate.value].splice(idx, 1); syncData(); };
-        const saveExpense = () => { expenses.value.push({...form.value}); syncData(); modal.value.show = false; };
-        
+        // --- 功能邏輯 ---
+        const addCategory = () => { luggage.value.push({ name: '新分類', items: [] }); saveToCloud(); };
+        const removeCategory = (idx) => { if(confirm('確定刪除分類？')) { luggage.value.splice(idx, 1); saveToCloud(); } };
+        const addSubItem = (idx) => { luggage.value[idx].items.push({ name: '新細項', done: false }); saveToCloud(); };
+        const removeSubItem = (cIdx, iIdx) => { luggage.value[cIdx].items.splice(iIdx, 1); saveToCloud(); };
+
+        const openModal = (type) => { 
+            modal.value = { show: true, type, title: type === 'itinerary' ? '新增行程' : type === 'shopping' ? '新增購物' : '紀錄支出' }; 
+            form.value = { name: '', time: '', amount: null };
+        };
+
+        const saveForm = () => {
+            if (modal.value.type === 'itinerary') itinerary.value[activeDate.value].push({...form.value});
+            else if (modal.value.type === 'shopping') shopping.value.push({name: form.value.name, done: false});
+            else if (modal.value.type === 'expense') expenses.value.push({...form.value});
+            saveToCloud();
+            modal.value.show = false;
+        };
+
+        const removeItem = (type, idx) => {
+            if (type === 'itinerary') itinerary.value[activeDate.value].splice(idx, 1);
+            else if (type === 'expense') expenses.value.splice(idx, 1);
+            saveToCloud();
+        };
+
         const totalExpense = computed(() => expenses.value.reduce((s, i) => s + (Number(i.amount) || 0), 0));
 
         onMounted(() => { initFirebase(); });
 
         return {
-            activeTab, activeDate, dates, luggage, itinerary, shopping, expenses, totalExpense,
-            modal, form, addListCategory, deleteCategory, addItem, deleteItem,
-            openAddModal, saveItinerary, deleteItinerary, saveExpense, syncData
+            activeTab, activeDate, loading, dates, luggage, itinerary, shopping, expenses, modal, form,
+            addCategory, removeCategory, addSubItem, removeSubItem, openModal, saveForm, removeItem, totalExpense, saveToCloud
         };
     }
 }).mount('#app');
