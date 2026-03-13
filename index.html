@@ -2,112 +2,63 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>福岡蜜月旅行</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>福岡蜜月旅行 (升級版)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-tailwind.config = {
-  theme: {
-    extend: {
-      colors: {
-        lavender: {50:'#FDFBFD',100:'#F4EBFC',200:'#E6D4F4',300:'#D4B3EA',400:'#BD8ADD',500:'#A160CE',600:'#8A45B8'}
-      }
-    }
-  }
-}
-</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-body {background-color:#FDFBFD; font-family:'Noto Sans TC',sans-serif; -webkit-tap-highlight-color:transparent; overflow-x:hidden;}
-.no-scrollbar::-webkit-scrollbar{display:none;}
-.no-scrollbar{-ms-overflow-style:none; scrollbar-width:none;}
-[v-cloak]{display:none;}
-@keyframes slide-up{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
-.animate-slide-up{animation:slide-up 0.3s ease-out;}
+body { background-color: #FDFBFD; font-family: 'Noto Sans TC', sans-serif; overflow-x: hidden; }
+.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+[ v-cloak ] { display: none; }
 </style>
 </head>
 <body class="text-gray-700 antialiased">
-
 <div id="app" v-cloak class="max-w-md mx-auto bg-lavender-50 min-h-screen relative shadow-xl overflow-hidden">
-
-<header class="relative h-[220px] w-full bg-lavender-200">
-  <img src="M6cH6f4bdmcJryLEtnmhGktaYkUSfReqd8p9GlWL__1682_1121.jpg" alt="Fukuoka" class="w-full h-full object-cover object-left" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80'">
-  <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-  <div class="relative text-center z-10 pt-10">
-    <h1 class="text-white text-3xl font-black tracking-widest drop-shadow-md">FUKUOKA</h1>
-    <p class="text-lavender-100 text-xs font-bold mt-1 tracking-[0.3em]">HONEYMOON 2026</p>
-  </div>
-  <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-1 bg-white/20 backdrop-blur-md p-1 rounded-2xl border border-white/30 z-20">
-    <button @click="activeTab='itinerary'" :class="activeTab==='itinerary'?'bg-white text-lavender-600 shadow-sm':'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">行程</button>
-    <button @click="activeTab='info'" :class="activeTab==='info'?'bg-white text-lavender-600 shadow-sm':'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">清單</button>
-    <button @click="activeTab='shopping'" :class="activeTab==='shopping'?'bg-white text-lavender-600 shadow-sm':'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">購物</button>
-    <button @click="activeTab='expense'" :class="activeTab==='expense'?'bg-white text-lavender-600 shadow-sm':'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">花費</button>
-  </div>
-</header>
-
-<main class="bg-lavender-50 rounded-t-[32px] -mt-6 relative z-10 min-h-[calc(100vh-156px)] pb-24 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-  <!-- 雲端同步狀態 -->
-  <div class="flex flex-col items-center justify-center py-3 space-y-1">
-    <div class="flex items-center space-x-2 cursor-pointer active:scale-95 transition-all" @click="changeUserName">
-      <div :class="dbConnected?'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)] animate-pulse':'bg-red-400'" class="w-1.5 h-1.5 rounded-full"></div>
-      <span class="text-[9px] font-black uppercase tracking-widest" :class="dbConnected?'text-gray-400':'text-red-400'">
-        {{ dbConnected?'Cloud Synced':'Offline' }}
-      </span>
-      <span class="text-[9px] font-bold text-lavender-500 bg-lavender-100 px-1.5 py-0.5 rounded-md flex items-center">
-        <i class="ph-fill ph-user mr-1"></i> {{ userName||'未設定' }}
-      </span>
+  <!-- Header 與導覽保持原樣 -->
+  <header class="relative h-[220px] w-full bg-lavender-200">
+    <img src="M6cH6f4bdmcJryLEtnmhGktaYkUSfReqd8p9GlWL__1682_1121.jpg"
+         alt="Fukuoka"
+         class="w-full h-full object-cover object-left"
+         onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80'">
+    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+    <div class="relative text-center z-10 pt-10">
+      <h1 class="text-white text-3xl font-black tracking-widest drop-shadow-md">FUKUOKA</h1>
+      <p class="text-lavender-100 text-xs font-bold mt-1 tracking-[0.3em]">HONEYMOON 2026</p>
     </div>
-    <span v-if="lastUpdatedBy" class="text-[8px] font-bold text-gray-300 tracking-wider">最後更新由：{{ lastUpdatedBy }}</span>
-  </div>
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-1 bg-white/20 backdrop-blur-md p-1 rounded-2xl border border-white/30 z-20">
+      <button @click="activeTab='itinerary'" :class="activeTab==='itinerary'?'bg-white text-lavender-600 shadow-sm':'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">行程</button>
+      <button @click="activeTab='info'" :class="activeTab==='info'?'bg-white text-lavender-600 shadow-sm':'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">清單</button>
+      <button @click="activeTab='shopping'" :class="activeTab==='shopping'?'bg-white text-lavender-600 shadow-sm':'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">購物</button>
+      <button @click="activeTab='expense'" :class="activeTab==='expense'?'bg-white text-lavender-600 shadow-sm':'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">花費</button>
+    </div>
+  </header>
 
-  <!-- 行程分頁 -->
-  <div v-show="activeTab==='itinerary'" class="px-5">
-    <div class="flex overflow-x-auto no-scrollbar space-x-4 pb-4">
-      <div v-for="date in dates" :key="date.id" @click="activeDate=date.id" 
-           class="flex flex-col items-center justify-center min-w-[62px] h-[78px] rounded-2xl transition-all shadow-sm"
-           :class="activeDate===date.id?'bg-lavender-500 text-white':'bg-white text-gray-400 border border-lavender-50'">
-        <span class="text-xl font-bold">{{ date.day }}</span>
-        <span class="text-[10px] mt-1 font-bold">{{ date.date }}</span>
+  <main class="bg-lavender-50 rounded-t-[32px] -mt-6 relative z-10 min-h-[calc(100vh-156px)] pb-24 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+    <!-- 雲端狀態 -->
+    <div class="flex flex-col items-center py-3 space-y-1">
+      <div class="flex items-center space-x-2 cursor-pointer" @click="changeUserName">
+        <div :class="dbConnected?'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)] animate-pulse':'bg-red-400'" class="w-1.5 h-1.5 rounded-full"></div>
+        <span class="text-[9px] font-black uppercase tracking-widest" :class="dbConnected?'text-gray-400':'text-red-400'">{{ dbConnected?'Cloud Synced':'Offline' }}</span>
+        <span class="text-[9px] font-bold text-lavender-500 bg-lavender-100 px-1.5 py-0.5 rounded-md flex items-center"><i class="ph-fill ph-user mr-1"></i>{{ userName||'未設定' }}</span>
+      </div>
+      <span v-if="lastUpdatedBy" class="text-[8px] font-bold text-gray-300 tracking-wider">最後更新由：{{ lastUpdatedBy }}</span>
+    </div>
+
+    <!-- 行程範例 -->
+    <div v-show="activeTab==='itinerary'" class="px-5 space-y-4">
+      <div v-for="(item, idx) in itinerary[activeDate]" :key="item.id" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden p-4">
+        <h3 class="text-lg font-bold text-gray-800">{{ item.name }}</h3>
+        <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">{{ item.category }} | {{ item.time }}</p>
       </div>
     </div>
-    <div class="space-y-4 mt-4" ref="sortableContainer">
-      <div v-for="(item, idx) in itinerary[activeDate]" :key="item.id" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-95 transition-all cursor-pointer">
-        <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover">
-        <div class="p-4">
-          <div class="flex justify-between items-start">
-            <div>
-              <span class="text-[10px] font-black text-lavender-500 bg-lavender-50 px-2 py-0.5 rounded uppercase tracking-wider">{{ item.category }}</span>
-              <h3 class="text-lg font-bold text-gray-800 mt-1">{{ item.name }}</h3>
-            </div>
-            <div class="flex space-x-2">
-              <a v-if="item.mapUrl" :href="item.mapUrl" target="_blank" @click.stop class="text-blue-400 p-2 bg-blue-50 rounded-full"><i class="ph-bold ph-map-pin"></i></a>
-            </div>
-          </div>
-          <div class="flex items-center space-x-3 mt-2 text-xs text-gray-400 font-bold">
-            <span class="flex items-center"><i class="ph ph-clock mr-1"></i>{{ item.time }}</span>
-            <span v-if="item.note" class="flex items-center text-lavender-400 italic"><i class="ph ph-note mr-1"></i>{{ item.note }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <button @click="openAddModal('itinerary')" class="fixed bottom-8 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center z-50"><i class="ph ph-plus text-2xl font-bold"></i></button>
-  </div>
-
-  <!-- 清單、購物、花費分頁保持原樣，略過為簡短示例 -->
-</main>
-
-<!-- 模態框系統保持原樣 -->
-
+  </main>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyC_PS1_6Ckqv6acED6Rs_A3r",
   authDomain: "mini-app-50ba0.firebaseapp.com",
@@ -118,67 +69,44 @@ const firebaseConfig = {
 };
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
-const dbRef = doc(db, 'honeymoon_projects','fukuoka_2026_final_sync');
+const dbRef = doc(db,'honeymoon_projects','fukuoka_2026_final_sync');
 
-const { createApp, ref, reactive, onMounted, nextTick } = Vue;
-
+const { createApp, ref, onMounted } = Vue;
 createApp({
   setup(){
-    const activeTab=ref('itinerary');
-    const activeDate=ref('2026-05-05');
-    const dbConnected=ref(false);
-    const userName=ref(localStorage.getItem('fukuoka_username')||'');
-    const lastUpdatedBy=ref('');
-    const dates=reactive([
-      {id:'2026-05-05',day:'Tue',date:'5/5'},
-      {id:'2026-05-06',day:'Wed',date:'5/6'},
-      {id:'2026-05-07',day:'Thu',date:'5/7'},
-      {id:'2026-05-08',day:'Fri',date:'5/8'},
-      {id:'2026-05-09',day:'Sat',date:'5/9'},
-      {id:'2026-05-10',day:'Sun',date:'5/10'}
-    ]);
-    const itinerary=reactive({
-      '2026-05-05':[], '2026-05-06':[], '2026-05-07':[], '2026-05-08':[], '2026-05-09':[], '2026-05-10':[]
+    const activeTab = ref('itinerary');
+    const activeDate = ref('2026-05-05');
+    const dbConnected = ref(false);
+    const userName = ref(localStorage.getItem('fukuoka_username')||'');
+    const lastUpdatedBy = ref('');
+    const itinerary = ref({'2026-05-05':[],'2026-05-06':[],'2026-05-07':[],'2026-05-08':[],'2026-05-09':[],'2026-05-10':[]});
+    
+    // Firestore 連線
+    onMounted(()=>{
+      onSnapshot(dbRef,(docSnap)=>{
+        if(docSnap.exists()){
+          const data=docSnap.data();
+          dbConnected.value=true;
+          itinerary.value=data.itinerary || itinerary.value;
+          lastUpdatedBy.value=data.lastUpdatedBy || '';
+        } else { dbConnected.value=false; }
+      }, (err)=>{ console.error(err); dbConnected.value=false; });
     });
-    const modal=ref({show:false,type:'',title:'',mode:'add',idx:null});
-    const form=ref({});
 
-    const changeUserName=()=>{
-      const name=prompt('請輸入名字',userName.value);
+    const changeUserName = ()=>{
+      const name=prompt('請輸入你的名字',userName.value);
       if(name&&name.trim()!==''){userName.value=name.trim(); localStorage.setItem('fukuoka_username',userName.value);}
-    }
+    };
 
-    const saveData=async()=>{
+    const saveData = async ()=>{
       if(!userName.value) changeUserName();
-      const data={itinerary:JSON.parse(JSON.stringify(itinerary)), lastUpdatedBy:userName.value||'神秘旅伴'};
-      localStorage.setItem('fukuoka_honeymoon_vfinal',JSON.stringify(data));
-      try{await setDoc(dbRef,data); dbConnected.value=true;}catch(e){console.error(e); dbConnected.value=false;}
-    }
+      const data={itinerary:JSON.parse(JSON.stringify(itinerary.value)),lastUpdatedBy:userName.value||'神秘旅伴'};
+      try{await setDoc(dbRef,data);}catch(e){console.error(e);}
+    };
 
-    const openAddModal=(type)=>{modal.value={show:true,type,mode:'add',title:'新增項目'}; form.value={category:'景點',name:'',time:'',mapUrl:'',image:'',note:''};}
-
-    onMounted(async()=>{
-      try{
-        onSnapshot(dbRef,(docSnap)=>{
-          if(docSnap.exists()){
-            const data=docSnap.data();
-            Object.keys(data.itinerary).forEach(k=>{if(itinerary[k]) itinerary[k]=data.itinerary[k];});
-            lastUpdatedBy.value=data.lastUpdatedBy||'神秘旅伴';
-            dbConnected.value=true;
-          }
-        });
-      }catch(e){console.error(e); dbConnected.value=false;}
-      // 初始化拖曳
-      nextTick(()=>{
-        const el=document.querySelector('[ref="sortableContainer"]');
-        if(el){new Sortable(el,{animation:150,handle:'div.p-4',onEnd:saveData});}
-      });
-    });
-
-    return {activeTab,activeDate,dates,itinerary,modal,form,dbConnected,userName,lastUpdatedBy,changeUserName,saveData,openAddModal};
+    return {activeTab, activeDate, dbConnected, userName, lastUpdatedBy, itinerary, changeUserName, saveData};
   }
 }).mount('#app');
 </script>
-
 </body>
 </html>
