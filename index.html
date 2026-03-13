@@ -174,6 +174,43 @@
             <button @click="openAddModal('itinerary')" class="fixed bottom-8 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center z-50"><i class="ph ph-plus text-2xl font-bold"></i></button>
         </div>
 
+        <!-- 行程列表 - 加入拖拽功能 -->
+            <draggable 
+                v-model="itinerary[activeDate]" 
+                item-key="id" 
+                handle=".drag-handle"
+                ghost-class="draggable-ghost"
+                @end="saveData"
+                class="space-y-4 mt-4 min-h-[100px]"
+            >
+                <template #item="{element, index}">
+                    <div @click="openEditItinerary(element, index)" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-[0.98] transition-all">
+                        <img v-if="element.image" :src="element.image" class="w-full h-40 object-cover">
+                        <div class="p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-[10px] font-black text-lavender-500 bg-lavender-50 px-2 py-0.5 rounded uppercase tracking-wider">{{ element.category }}</span>
+                                    <h3 class="text-lg font-bold text-gray-800 mt-1">{{ element.name }}</h3>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <div class="drag-handle text-gray-200 p-2 bg-gray-50 rounded-full cursor-move">
+                                        <i class="ph-bold ph-dots-six-vertical"></i>
+                                    </div>
+                                    <a v-if="element.mapUrl" :href="element.mapUrl" target="_blank" @click.stop class="text-blue-400 p-2 bg-blue-50 rounded-full"><i class="ph-bold ph-map-pin"></i></a>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3 mt-2 text-xs text-gray-400 font-bold">
+                                <span class="flex items-center"><i class="ph ph-clock mr-1"></i>{{ element.time }}</span>
+                                <span v-if="element.note" class="flex items-center text-lavender-400 italic"><i class="ph ph-note mr-1"></i>{{ element.note }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </draggable>
+            
+            <button @click="openAddModal('itinerary')" class="fixed bottom-8 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center z-50 active:scale-90 transition-all"><i class="ph ph-plus text-2xl font-bold"></i></button>
+        </div>
+
         <!-- 2. 清單分頁 (優化處) -->
         <div v-show="activeTab === 'info'" class="pt-6 px-5 space-y-6">
             <!-- 匯率助手 (保持不變) -->
@@ -347,6 +384,7 @@
                     </button>
                 </div>
             </div>
+            
             <div v-if="modal.type === 'shoppingItem'" class="space-y-4 pb-10">
                 <input v-model="formShop.name" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none text-lg" placeholder="商品名稱">
                 <div class="flex flex-wrap gap-2">
@@ -387,6 +425,9 @@
     const { createApp, ref, computed, onMounted } = Vue;
 
     createApp({
+        components: {
+            draggable: window.vuedraggable
+        },
         setup() {
             const activeTab = ref('itinerary');
             const activeDate = ref('2026-05-05');
@@ -536,4 +577,3 @@
 </script>
 </body>
 </html>
-
