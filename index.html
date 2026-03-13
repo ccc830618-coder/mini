@@ -49,7 +49,7 @@
     
     <!-- 頁首 Banner -->
     <header class="relative h-[220px] w-full bg-lavender-200">
-        <img src="M6cH6f4bdmcJryLEtnmhGktaYkUSfReqd8p9GlWL__1682_1121.jpg" alt="Fukuoka" class="w-full h-full object-cover object-left" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80'">
+        <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80" alt="Fukuoka" class="w-full h-full object-cover object-left" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80'">
         <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
         <div class="relative text-center z-10 pt-10">
             <h1 class="text-white text-3xl font-black tracking-widest drop-shadow-md">FUKUOKA</h1>
@@ -152,13 +152,13 @@
                 </div>
             </div>
 
-            <!-- 行程列表 - 加入拖拽功能 -->
+            <!-- 行程列表 - 固定顯示當前選擇日期的行程 -->
             <draggable 
-                v-model="itinerary[activeDate]" 
+                v-model="activeItineraryList" 
                 item-key="id" 
                 handle=".drag-handle"
                 ghost-class="draggable-ghost"
-                @end="saveData"
+                @end="onDraggableEnd"
                 class="space-y-4 mt-4 min-h-[100px]"
             >
                 <template #item="{element, index}">
@@ -400,7 +400,7 @@
     const db = getFirestore(firebaseApp);
     const dbRef = doc(db, 'honeymoon_projects', 'fukuoka_2026_final_sync');
 
-    const { createApp, ref, computed, onMounted } = Vue;
+    const { createApp, ref, computed, onMounted, watch } = Vue;
 
     createApp({
         components: {
@@ -434,6 +434,14 @@
                 '2026-05-05': [], '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
             });
 
+            // 計算當前日期的行程列表，用於 draggable 綁定
+            const activeItineraryList = computed({
+                get: () => itinerary.value[activeDate.value] || [],
+                set: (val) => {
+                    itinerary.value[activeDate.value] = val;
+                }
+            });
+
             const preCheck = ref([{ name: '行前文件', items: [{ name: '護照', done: true }, { name: 'VJW', done: false }] }]);
             const luggage = ref([{ name: '必備用品', items: [{ name: '行動電源', done: false }] }]);
             const shopping = ref([{ name: '美妝藥妝', items: [{ name: '合利他命', done: false, tags: ['必買'] }] }]);
@@ -465,7 +473,6 @@
                     lastUpdate: Date.now(),
                     lastUpdatedBy: userName.value || '神秘旅伴'
                 };
-                localStorage.setItem('fukuoka_honeymoon_vfinal', JSON.stringify(data));
                 try { await setDoc(dbRef, data); } catch (e) { console.error("Cloud Sync Failed", e); }
             };
 
@@ -511,9 +518,20 @@
             };
 
             const saveItinerary = () => {
-                if (modal.value.mode === 'edit') { itinerary.value[activeDate.value][modal.value.idx] = { ...form.value }; } 
-                else { itinerary.value[activeDate.value].push({ ...form.value, id: Date.now() }); }
-                modal.value.show = false; saveData();
+                if (!itinerary.value[activeDate.value]) itinerary.value[activeDate.value] = [];
+                
+                if (modal.value.mode === 'edit') { 
+                    itinerary.value[activeDate.value][modal.value.idx] = { ...form.value }; 
+                } 
+                else { 
+                    itinerary.value[activeDate.value].push({ ...form.value, id: Date.now() }); 
+                }
+                modal.value.show = false; 
+                saveData();
+            };
+
+            const onDraggableEnd = () => {
+                saveData();
             };
 
             const deleteItinerary = (idx) => { itinerary.value[activeDate.value].splice(idx, 1); modal.value.show = false; saveData(); };
@@ -533,7 +551,14 @@
                     if (snap.exists()) {
                         const d = snap.data();
                         if(d.flights) flights.value = d.flights;
-                        if(d.itinerary) itinerary.value = d.itinerary;
+                        if(d.itinerary) {
+                            // 確保所有日期 key 都存在，避免顯示問題
+                            const newItinerary = { ...itinerary.value };
+                            Object.keys(d.itinerary).forEach(key => {
+                                newItinerary[key] = d.itinerary[key];
+                            });
+                            itinerary.value = newItinerary;
+                        }
                         if(d.preCheck) preCheck.value = d.preCheck;
                         if(d.luggage) luggage.value = d.luggage;
                         if(d.shopping) shopping.value = d.shopping;
@@ -544,11 +569,11 @@
             });
 
             return {
-                activeTab, activeDate, dates, flights, itinerary, preCheck, luggage, shopping, expenses, totalExpenseTwd,
+                activeTab, activeDate, dates, flights, itinerary, activeItineraryList, preCheck, luggage, shopping, expenses, totalExpenseTwd,
                 weather, currentTime, rate, showRateEdit, jpy, twd, jpyToTwd, twdToJpy, dbConnected,
                 userName, lastUpdatedBy, changeUserName, modal, form, formFlight, formShop, customTag, 
                 openFlightEdit, saveFlight, openAddModal, openEditItinerary, handleImageUpload, saveItinerary, deleteItinerary, saveExpense, 
-                openAddItemToShopping, toggleTag, addCustomTag, saveShoppingItem, addListCategory, addItemToList, saveData
+                openAddItemToShopping, toggleTag, addCustomTag, saveShoppingItem, addListCategory, addItemToList, saveData, onDraggableEnd
             }
         }
     }).mount('#app');
