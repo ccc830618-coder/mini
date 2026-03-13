@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fukuoka Honeymoon 2026</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+</head>
+
+<body class="bg-lavender-200">
+    <div id="app" class="p-8">
+        <h1 class="text-3xl font-bold">Fukuoka Honeymoon 2026</h1>
+        <itinerary-manager v-model="itinerary"></itinerary-manager>
+    </div>
+
+    <script>
+        Vue.component('itinerary-manager', {
+            props: ['modelValue'],
+            data() {
+                return {
+                    newItem: '',
+                };
+            },
+            computed: {
+                itinerary() {
+                    return this.modelValue;
+                }
+            },
+            methods: {
+                addItem() {
+                    if (this.newItem) {
+                        const newEntry = {
+                            name: this.newItem,
+                            date: this.getDate() // 可扩展以接受日期
+                        };
+                        this.modelValue.push(newEntry);
+                        this.newItem = '';
+                    }
+                },
+                getDate() {
+                    return new Date().toISOString().split('T')[0]; // 返回当前日期
+                }
+            },
+            template: `
+                <div>
+                    <input v-model="newItem" placeholder="新增行程" class="border p-2 rounded">
+                    <button @click="addItem" class="bg-blue-500 text-white p-2 rounded">新增</button>
+                    <ul>
+                        <li v-for="(item, index) in itinerary" :key="index">
+                            {{ item.name }} - {{ item.date }}
+                        </li>
+                    </ul>
+                </div>
+            `
+        });
+
+        const app = Vue.createApp({
+            data() {
+                return {
+                    itinerary: []
+                };
+            },
+            mounted() {
+                // 可以添加其他初始化代码
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>
