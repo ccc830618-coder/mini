@@ -434,13 +434,13 @@
                 '2026-05-05': [], '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
             });
 
-            // 計算當前日期的行程列表，用於 draggable 綁定
-            const activeItineraryList = computed({
-                get: () => itinerary.value[activeDate.value] || [],
-                set: (val) => {
-                    itinerary.value[activeDate.value] = val;
-                }
-            });
+            // 尋找並修改這個 computed
+const activeItineraryList = computed({
+    get: () => itinerary.value[activeDate.value] || [], // 確保不會回傳 undefined
+    set: (val) => {
+        itinerary.value[activeDate.value] = val;
+    }
+});
 
             const preCheck = ref([{ name: '行前文件', items: [{ name: '護照', done: true }, { name: 'VJW', done: false }] }]);
             const luggage = ref([{ name: '必備用品', items: [{ name: '行動電源', done: false }] }]);
@@ -588,3 +588,6 @@ const saveItinerary = () => {
 </script>
 </body>
 </html>
+
+
+以上是有問題的！我喜歡的版本請幫我檢查是哪邊不對！我自己修改！
