@@ -6,6 +6,8 @@
     <title>福岡蜜月旅行</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/4.1.0/vuedraggable.umd.min.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script>
         tailwind.config = {
@@ -29,6 +31,15 @@
         @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s ease-out; }
         [v-cloak] { display: none; }
+        
+        /* 優化滑動流暢度 */
+        .smooth-scroll { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+        .draggable-ghost { opacity: 0.5; background: #E6D4F4 !important; border: 2px dashed #A160CE !important; }
+        
+        /* 修復點擊穿透與遮擋問題 */
+        header { z-index: 5; }
+        main { z-index: 10; will-change: transform; }
+        .date-container { position: relative; z-index: 30; }
     </style>
 </head>
 <body class="text-gray-700 antialiased">
@@ -54,7 +65,7 @@
     </header>
 
     <main class="bg-lavender-50 rounded-t-[32px] -mt-6 relative z-10 min-h-[calc(100vh-156px)] pb-24 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-        
+
         <!-- 雲端同步狀態顯示 -->
         <div class="flex flex-col items-center justify-center py-3 space-y-1">
             <div class="flex items-center space-x-2 cursor-pointer active:scale-95 transition-all" @click="changeUserName">
@@ -72,7 +83,8 @@
         </div>
 
         <!-- 1. 行程分頁 -->
-        <div v-show="activeTab === 'itinerary'" class="px-5">
+        <div v-show="activeTab === 'itinerary'" class="px-5 relative">
+            <!-- 渲染行程内容 -->
             <div class="space-y-3 mb-4">
                 <div @click="openFlightEdit('departure')" class="bg-white rounded-2xl p-4 shadow-sm border border-lavender-100 active:scale-95 transition-all">
                     <div class="flex justify-between items-center mb-3">
@@ -129,42 +141,56 @@
                 </div>
             </div>
 
-            <!-- 日期選擇 -->
-            <div class="flex overflow-x-auto no-scrollbar space-x-4 pb-4">
+            <!-- 日期選擇器 -->
+            <div class="date-container flex overflow-x-auto no-scrollbar space-x-4 pb-4 smooth-scroll">
                 <div v-for="date in dates" :key="date.id" @click="activeDate = date.id" 
-                     class="flex flex-col items-center justify-center min-w-[62px] h-[78px] rounded-2xl transition-all shadow-sm"
-                     :class="activeDate === date.id ? 'bg-lavender-500 text-white' : 'bg-white text-gray-400 border border-lavender-50'">
+                     class="flex flex-col items-center justify-center min-w-[62px] h-[78px] rounded-2xl transition-all shadow-sm cursor-pointer"
+                     :class="activeDate === date.id ? 'bg-lavender-500 text-white scale-105' : 'bg-white text-gray-400 border border-lavender-50'">
                     <span class="text-xl font-bold">{{ date.day }}</span>
                     <span class="text-[10px] mt-1 font-bold">{{ date.date }}</span>
                 </div>
             </div>
 
-            <!-- 行程列表 -->
-            <div class="space-y-4 mt-4">
-                <div v-for="(item, idx) in itinerary[activeDate]" :key="item.id" @click="openEditItinerary(item, idx)" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-95 transition-all">
-                    <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover">
-                    <div class="p-4">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <span class="text-[10px] font-black text-lavender-500 bg-lavender-50 px-2 py-0.5 rounded uppercase tracking-wider">{{ item.category }}</span>
-                                <h3 class="text-lg font-bold text-gray-800 mt-1">{{ item.name }}</h3>
+            <!-- 行程列表 - 加入拖拽功能 -->
+            <draggable 
+                v-model="itinerary[activeDate]" 
+                item-key="id" 
+                handle=".drag-handle"
+                ghost-class="draggable-ghost"
+                @end="saveData"
+                class="space-y-4 mt-4 min-h-[100px]"
+            >
+                <template #item="{element, index}">
+                    <div @click="openEditItinerary(element, index)" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-[0.98] transition-all">
+                        <img v-if="element.image" :src="element.image" class="w-full h-40 object-cover">
+                        <div class="p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-[10px] font-black text-lavender-500 bg-lavender-50 px-2 py-0.5 rounded uppercase tracking-wider">{{ element.category }}</span>
+                                    <h3 class="text-lg font-bold text-gray-800 mt-1">{{ element.name }}</h3>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <div class="drag-handle text-gray-200 p-2 bg-gray-50 rounded-full cursor-move">
+                                        <i class="ph-bold ph-dots-six-vertical"></i>
+                                    </div>
+                                    <a v-if="element.mapUrl" :href="element.mapUrl" target="_blank" @click.stop class="text-blue-400 p-2 bg-blue-50 rounded-full"><i class="ph-bold ph-map-pin"></i></a>
+                                </div>
                             </div>
-                            <div class="flex space-x-2">
-                                <a v-if="item.mapUrl" :href="item.mapUrl" target="_blank" @click.stop class="text-blue-400 p-2 bg-blue-50 rounded-full"><i class="ph-bold ph-map-pin"></i></a>
+                            <div class="flex items-center space-x-3 mt-2 text-xs text-gray-400 font-bold">
+                                <span class="flex items-center"><i class="ph ph-clock mr-1"></i>{{ element.time }}</span>
+                                <span v-if="element.note" class="flex items-center text-lavender-400 italic"><i class="ph ph-note mr-1"></i>{{ element.note }}</span>
                             </div>
-                        </div>
-                        <div class="flex items-center space-x-3 mt-2 text-xs text-gray-400 font-bold">
-                            <span class="flex items-center"><i class="ph ph-clock mr-1"></i>{{ item.time }}</span>
-                            <span v-if="item.note" class="flex items-center text-lavender-400 italic"><i class="ph ph-note mr-1"></i>{{ item.note }}</span>
                         </div>
                     </div>
-                </div>
-            </div>
-            <button @click="openAddModal('itinerary')" class="fixed bottom-8 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center z-50"><i class="ph ph-plus text-2xl font-bold"></i></button>
+                </template>
+            </draggable>
+            
+            <button @click="openAddModal('itinerary')" class="fixed bottom-8 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center z-50 active:scale-90 transition-all"><i class="ph ph-plus text-2xl font-bold"></i></button>
         </div>
 
         <!-- 2. 清單分頁 -->
         <div v-show="activeTab === 'info'" class="pt-6 px-5 space-y-6">
+            <!-- 匯率助手 -->
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-lavender-100">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold text-gray-800 flex items-center"><i class="ph-fill ph-calculator mr-2 text-lavender-500"></i>匯率助手</h3>
@@ -302,7 +328,7 @@
                 </div>
                 <button @click="saveFlight" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl mt-4">儲存機票資訊</button>
             </div>
-            
+
             <div v-if="modal.type === 'itinerary'" class="space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                     <select v-model="form.category" class="bg-gray-50 p-4 rounded-2xl font-bold outline-none">
@@ -334,7 +360,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <div v-if="modal.type === 'shoppingItem'" class="space-y-4 pb-10">
                 <input v-model="formShop.name" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none text-lg" placeholder="商品名稱">
                 <div class="flex flex-wrap gap-2">
@@ -343,7 +369,7 @@
                 </div>
                 <button @click="saveShoppingItem" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl mt-6">加入清單</button>
             </div>
-            
+
             <div v-if="modal.type === 'expense'" class="space-y-4">
                 <input v-model="form.name" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none text-lg" placeholder="消費項目">
                 <input type="number" v-model="form.amount" class="w-full bg-gray-50 p-4 rounded-2xl font-black text-2xl outline-none" placeholder="NT$ 金額">
@@ -375,6 +401,9 @@
     const { createApp, ref, computed, onMounted } = Vue;
 
     createApp({
+        components: {
+            draggable: window.vuedraggable
+        },
         setup() {
             const activeTab = ref('itinerary');
             const activeDate = ref('2026-05-05');
@@ -388,15 +417,10 @@
             const currentTime = ref('');
             const weather = ref({ temp: '--', desc: '更新中...', icon: 'ph ph-sun-dim' });
 
-            // 在這裡多加入了一個 5/5 在原本的後面
             const dates = [
-                { id: '2026-05-05', day: 'Tue', date: '5/5' }, 
-                { id: '2026-05-05_2', day: 'Tue', date: '5/5' }, // 多加入的一個 5/5
-                { id: '2026-05-06', day: 'Wed', date: '5/6' }, 
-                { id: '2026-05-07', day: 'Thu', date: '5/7' }, 
-                { id: '2026-05-08', day: 'Fri', date: '5/8' },
-                { id: '2026-05-09', day: 'Sat', date: '5/9' }, 
-                { id: '2026-05-10', day: 'Sun', date: '5/10' }
+                { id: '2026-05-05', day: 'Tue', date: '5/5' }, { id: '2026-05-06', day: 'Wed', date: '5/6' },
+                { id: '2026-05-07', day: 'Thu', date: '5/7' }, { id: '2026-05-08', day: 'Fri', date: '5/8' },
+                { id: '2026-05-09', day: 'Sat', date: '5/9' }, { id: '2026-05-10', day: 'Sun', date: '5/10' }
             ];
 
             const flights = ref({
@@ -405,9 +429,7 @@
             });
 
             const itinerary = ref({
-                '2026-05-05': [], 
-                '2026-05-05_2': [], // 多加入的一個 5/5 對應的容器
-                '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
+                '2026-05-05': [], '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
             });
 
             const preCheck = ref([{ name: '行前文件', items: [{ name: '護照', done: true }, { name: 'VJW', done: false }] }]);
@@ -416,9 +438,9 @@
             const expenses = ref([]);
 
             const modal = ref({ show: false, type: '', title: '', mode: 'add', target: null, idx: null });
-            const form = ref({ image: '' });
+            const form = ref({ image: '', category: '景點', name: '', time: '', mapUrl: '', note: '' });
             const formFlight = ref({});
-            const formShop = ref({ tags: [] });
+            const formShop = ref({ name: '', tags: [], done: false });
             const customTag = ref('');
 
             const changeUserName = () => {
@@ -454,7 +476,8 @@
                     const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&current_weather=true');
                     const data = await res.json();
                     weather.value.temp = Math.round(data.current_weather.temperature);
-                    weather.value.desc = '福岡晴朗'; weather.value.icon = 'ph-fill ph-sun';
+                    weather.value.desc = '福岡晴朗'; 
+                    weather.value.icon = 'ph-fill ph-sun';
                 } catch(e) { weather.value.desc = '福岡天氣'; }
             };
 
@@ -465,7 +488,12 @@
                 modal.value = { show: true, type: 'flight', title: target === 'departure' ? '5/5 去程' : '5/10 回程', target };
                 formFlight.value = { ...flights.value[target] };
             };
-            const saveFlight = () => { flights.value[modal.value.target] = { ...formFlight.value }; modal.value.show = false; saveData(); };
+
+            const saveFlight = () => { 
+                flights.value[modal.value.target] = { ...formFlight.value }; 
+                modal.value.show = false; 
+                saveData(); 
+            };
 
             const openAddModal = (type) => {
                 modal.value = { show: true, type, title: '新增項目', mode: 'add' };
@@ -475,7 +503,7 @@
 
             const openEditItinerary = (item, idx) => {
                 modal.value = { show: true, type: 'itinerary', title: '編輯行程', mode: 'edit', idx };
-                form.value = { ...item };
+                form.value = { ...item };  // ensure form holds a copy of item
             };
 
             const handleImageUpload = (e) => {
@@ -487,33 +515,73 @@
             };
 
             const saveItinerary = () => {
-                if (modal.value.mode === 'edit') { itinerary.value[activeDate.value][modal.value.idx] = { ...form.value }; } 
-                else { itinerary.value[activeDate.value].push({ ...form.value, id: Date.now() }); }
-                modal.value.show = false; saveData();
+                if (modal.value.mode === 'edit') {
+                    itinerary.value[activeDate.value][modal.value.idx] = { ...form.value };
+                } else { 
+                    itinerary.value[activeDate.value].push({ ...form.value, id: Date.now() }); 
+                }
+                modal.value.show = false; 
+                saveData(); 
             };
 
-            const deleteItinerary = (idx) => { itinerary.value[activeDate.value].splice(idx, 1); modal.value.show = false; saveData(); };
-            const saveExpense = () => { expenses.value.unshift({ ...form.value, id: Date.now() }); modal.value.show = false; saveData(); };
-            const openAddItemToShopping = (cat) => { modal.value = { show: true, type: 'shoppingItem', title: `新增到 ${cat.name}`, target: cat }; formShop.value = { name: '', tags: [], done: false }; };
-            const toggleTag = (t) => { const idx = formShop.value.tags.indexOf(t); if (idx === -1) formShop.value.tags.push(t); else formShop.value.tags.splice(idx, 1); };
-            const addCustomTag = () => { if (customTag.value) { formShop.value.tags.push(customTag.value); customTag.value = ''; } };
-            const saveShoppingItem = () => { modal.value.target.items.push({ ...formShop.value }); modal.value.show = false; saveData(); };
-            const addListCategory = (list) => { list.push({ name: '新分類', items: [] }); saveData(); };
-            const addItemToList = (cat) => { cat.items.push({ name: '新項目', done: false }); saveData(); };
+            const deleteItinerary = (idx) => { 
+                itinerary.value[activeDate.value].splice(idx, 1); 
+                modal.value.show = false; 
+                saveData(); 
+            };
+
+            const saveExpense = () => { 
+                expenses.value.unshift({ ...form.value, id: Date.now() }); 
+                modal.value.show = false; 
+                saveData(); 
+            };
+
+            const openAddItemToShopping = (cat) => { 
+                modal.value = { show: true, type: 'shoppingItem', title: `新增到 ${cat.name}`, target: cat }; 
+                formShop.value = { name: '', tags: [], done: false }; 
+            };
+
+            const toggleTag = (t) => { 
+                const idx = formShop.value.tags.indexOf(t); 
+                if (idx === -1) formShop.value.tags.push(t); 
+                else formShop.value.tags.splice(idx, 1); 
+            };
+
+            const addCustomTag = () => { 
+                if (customTag.value) { 
+                    formShop.value.tags.push(customTag.value); 
+                    customTag.value = ''; 
+                } 
+            };
+
+            const saveShoppingItem = () => { 
+                modal.value.target.items.push({ ...formShop.value }); 
+                modal.value.show = false; 
+                saveData(); 
+            };
+
+            const addListCategory = (list) => { 
+                list.push({ name: '新分類', items: [] }); 
+                saveData(); 
+            };
+
+            const addItemToList = (cat) => { 
+                cat.items.push({ name: '新項目', done: false }); 
+                saveData(); 
+            };
+
             const totalExpenseTwd = computed(() => expenses.value.reduce((s, i) => s + (Number(i.amount) || 0), 0));
 
             onMounted(() => { 
-                updateTime(); fetchWeather(); setInterval(updateTime, 60000); 
+                updateTime(); 
+                fetchWeather(); 
+                setInterval(updateTime, 60000); 
                 onSnapshot(dbRef, (snap) => {
                     dbConnected.value = true;
                     if (snap.exists()) {
                         const d = snap.data();
                         if(d.flights) flights.value = d.flights;
-                        if(d.itinerary) {
-                            // 確保 5/5_2 也會被更新
-                            itinerary.value = d.itinerary;
-                            if(!itinerary.value['2026-05-05_2']) itinerary.value['2026-05-05_2'] = [];
-                        }
+                        if(d.itinerary) itinerary.value = d.itinerary;
                         if(d.preCheck) preCheck.value = d.preCheck;
                         if(d.luggage) luggage.value = d.luggage;
                         if(d.shopping) shopping.value = d.shopping;
