@@ -2,12 +2,11 @@
 <html lang="zh-Hant-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>福岡蜜月旅行</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- 為了實現拖拽排序引入 SortableJS -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
         tailwind.config = {
@@ -25,16 +24,27 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        body { background-color: #FDFBFD; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        body { 
+            background-color: #FDFBFD; 
+            font-family: 'Noto Sans TC', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            overflow-x: hidden;
+            touch-action: manipulation; /* 優化移動端點擊延遲 */
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s ease-out; }
         [v-cloak] { display: none; }
         
-        /* 拖拽時的樣式 */
-        .sortable-ghost { opacity: 0.3; background: #E6D4F4 !important; }
-        .sortable-drag { opacity: 0.9; transform: scale(1.02); }
+        /* 拖拽優化樣式 */
+        .sortable-ghost { opacity: 0.1; background: #E6D4F4 !important; }
+        .sortable-drag { opacity: 0.9; transform: scale(1.02); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .drag-handle { cursor: grab; touch-action: none; }
+        .drag-handle:active { cursor: grabbing; }
+
+        /* 防止拖動時文字被選取 */
+        .sorting-active * { user-select: none !important; }
     </style>
 </head>
 <body class="text-gray-700 antialiased">
@@ -137,18 +147,18 @@
 
             <div class="flex overflow-x-auto no-scrollbar space-x-4 pb-4">
                 <div v-for="date in dates" :key="date.id" @click="activeDate = date.id" 
-                     class="flex flex-col items-center justify-center min-w-[62px] h-[78px] rounded-2xl transition-all shadow-sm"
+                     class="flex flex-col items-center justify-center min-w-[62px] h-[78px] rounded-2xl transition-all shadow-sm cursor-pointer"
                      :class="activeDate === date.id ? 'bg-lavender-500 text-white' : 'bg-white text-gray-400 border border-lavender-50'">
                     <span class="text-xl font-bold">{{ date.day }}</span>
                     <span class="text-[10px] mt-1 font-bold">{{ date.date }}</span>
                 </div>
             </div>
 
-            <!-- 行程列表 - 加入拖拽容器 -->
-            <div id="itinerary-list" class="space-y-0 mt-4">
-                <template v-for="(item, idx) in itinerary[activeDate]" :key="item.id">
+            <!-- 行程列表 - 優化拖拽容器 -->
+            <div id="itinerary-list" class="space-y-0 mt-4 min-h-[100px]">
+                <template v-for="(item, idx) in itinerary[activeDate]" :key="item.id || idx">
                     <!-- 間距時間顯示 -->
-                    <div v-if="idx > 0" class="flex items-center justify-center py-2">
+                    <div v-if="idx > 0" class="flex items-center justify-center py-2 no-drag">
                         <div class="h-8 w-[2px] bg-dashed border-l-2 border-dashed border-lavender-200"></div>
                         <div class="mx-4 bg-lavender-100 px-3 py-1 rounded-full flex items-center space-x-1">
                             <i class="ph-bold ph-trend-up text-[10px] text-lavender-500"></i>
@@ -158,17 +168,17 @@
                     </div>
 
                     <!-- 行程卡片 -->
-                    <div :data-id="item.id" @click="openEditItinerary(item, idx)" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-95 transition-all mb-0">
-                        <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover">
+                    <div :data-id="item.id" @click="openEditItinerary(item, idx)" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-[0.98] transition-all mb-0">
+                        <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover pointer-events-none">
                         <div class="p-4">
                             <div class="flex justify-between items-start">
-                                <div>
+                                <div class="flex-1">
                                     <span class="text-[10px] font-black text-lavender-500 bg-lavender-50 px-2 py-0.5 rounded uppercase tracking-wider">{{ item.category }}</span>
                                     <h3 class="text-lg font-bold text-gray-800 mt-1">{{ item.name }}</h3>
                                 </div>
-                                <div class="flex space-x-2">
-                                    <div class="drag-handle text-gray-200 p-2"><i class="ph-bold ph-dots-six-vertical"></i></div>
-                                    <a v-if="item.mapUrl" :href="item.mapUrl" target="_blank" @click.stop class="text-blue-400 p-2 bg-blue-50 rounded-full"><i class="ph-bold ph-map-pin"></i></a>
+                                <div class="flex space-x-2 items-center">
+                                    <a v-if="item.mapUrl" :href="item.mapUrl" target="_blank" @click.stop class="text-blue-400 p-2 bg-blue-50 rounded-full flex items-center justify-center"><i class="ph-bold ph-map-pin"></i></a>
+                                    <div class="drag-handle text-gray-300 p-2 flex items-center justify-center" @click.stop><i class="ph-bold ph-dots-six-vertical text-xl"></i></div>
                                 </div>
                             </div>
                             <div class="flex items-center space-x-3 mt-2 text-xs text-gray-400 font-bold">
@@ -178,9 +188,14 @@
                         </div>
                     </div>
                 </template>
+                <!-- 空狀態提醒 -->
+                <div v-if="!itinerary[activeDate]?.length" class="text-center py-10 opacity-30">
+                    <i class="ph ph-calendar-blank text-4xl mb-2"></i>
+                    <p class="text-xs font-bold">今天還沒有安排行程</p>
+                </div>
             </div>
             
-            <button @click="openAddModal('itinerary')" class="fixed bottom-8 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center z-50"><i class="ph ph-plus text-2xl font-bold"></i></button>
+            <button @click="openAddModal('itinerary')" class="fixed bottom-8 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center z-50 active:scale-90 transition-transform"><i class="ph ph-plus text-2xl font-bold"></i></button>
         </div>
 
         <!-- 2. 清單分頁 -->
@@ -277,7 +292,7 @@
                 <h2 class="text-4xl font-black">NT$ {{ totalExpenseTwd.toLocaleString() }}</h2>
             </div>
             <div class="space-y-3">
-                <div v-for="(item, idx) in expenses" :key="item.id" class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-lavender-50">
+                <div v-for="(item, idx) in expenses" :key="item.id || idx" class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-lavender-50">
                     <div class="flex items-center space-x-3">
                         <div class="w-10 h-10 rounded-xl bg-lavender-50 flex items-center justify-center text-lavender-500"><i class="ph-fill ph-receipt text-xl"></i></div>
                         <div><p class="font-bold text-sm text-gray-800">{{ item.name }}</p><p v-if="item.note" class="text-[9px] text-gray-400 font-bold">{{ item.note }}</p></div>
@@ -428,7 +443,6 @@
             const formShop = ref({ tags: [] });
             const customTag = ref('');
 
-            // 計算間距時間
             const calculateGap = (time1, time2) => {
                 if (!time1 || !time2) return '計算中';
                 const [h1, m1] = time1.split(':').map(Number);
@@ -440,19 +454,31 @@
                 return h > 0 ? `距離 ${h}時${m}分` : `距離 ${m}分`;
             };
 
-            // 初始化拖拽排序
+            // 優化拖拽初始化實例
             let sortableInstance = null;
             const initSortable = () => {
                 const el = document.getElementById('itinerary-list');
                 if (!el) return;
-                if (sortableInstance) sortableInstance.destroy();
+                
+                // 如果已經有實例且日期沒變，不重複銷毀重建
+                if (sortableInstance) {
+                    sortableInstance.destroy();
+                    sortableInstance = null;
+                }
                 
                 sortableInstance = new Sortable(el, {
-                    animation: 150,
-                    handle: '.drag-handle',
+                    animation: 200, // 稍微增加動畫流暢度
+                    handle: '.drag-handle', // 嚴格限制手把，解決 5/5 觸碰不到的問題
                     ghostClass: 'sortable-ghost',
                     dragClass: 'sortable-drag',
+                    filter: '.no-drag', // 禁止拖拽間距元件
+                    delay: 100, // 增加微小延遲防止誤觸
+                    delayOnTouchOnly: true,
+                    onStart: () => document.body.classList.add('sorting-active'),
                     onEnd: (evt) => {
+                        document.body.classList.remove('sorting-active');
+                        if (evt.oldIndex === evt.newIndex) return;
+                        
                         const list = [...itinerary.value[activeDate.value]];
                         const [movedItem] = list.splice(evt.oldIndex, 1);
                         list.splice(evt.newIndex, 0, movedItem);
@@ -462,23 +488,23 @@
                 });
             };
 
-            // 監聽日期切換或分頁切換，重新初始化拖拽
             watch([activeDate, activeTab], () => {
                 if (activeTab.value === 'itinerary') {
                     nextTick(() => initSortable());
                 }
-            });
+            }, { flush: 'post' });
 
             const changeUserName = () => {
                 const inputName = prompt('請輸入你的名字', userName.value);
                 if (inputName && inputName.trim() !== '') {
                     userName.value = inputName.trim();
                     localStorage.setItem('fukuoka_username', userName.value);
+                    saveData();
                 }
             };
 
             const saveData = async () => {
-                if (!userName.value) changeUserName();
+                if (!userName.value) return; // 未設定名字前不強制同步
                 const data = {
                     flights: JSON.parse(JSON.stringify(flights.value)),
                     itinerary: JSON.parse(JSON.stringify(itinerary.value)),
@@ -489,8 +515,7 @@
                     lastUpdate: Date.now(),
                     lastUpdatedBy: userName.value || '神秘旅伴'
                 };
-                localStorage.setItem('fukuoka_honeymoon_vfinal', JSON.stringify(data));
-                try { await setDoc(dbRef, data); } catch (e) { console.error("Cloud Sync Failed", e); }
+                try { await setDoc(dbRef, data); } catch (e) { console.warn("Cloud Sync Failed", e); }
             };
 
             const updateTime = () => {
@@ -539,10 +564,9 @@
                     itinerary.value[activeDate.value][modal.value.idx] = { ...form.value }; 
                 } else { 
                     itinerary.value[activeDate.value].push({ ...form.value, id: Date.now() }); 
+                    // 僅在新增時嘗試自動排序，以免破壞使用者手動拖拽的結果
+                    itinerary.value[activeDate.value].sort((a, b) => a.time.localeCompare(b.time));
                 }
-                // 自動根據時間排序（可選，如果不想要自動排，可以註解掉這行，改手動拖拽）
-                itinerary.value[activeDate.value].sort((a, b) => a.time.localeCompare(b.time));
-                
                 modal.value.show = false; 
                 saveData();
                 nextTick(() => initSortable());
@@ -564,13 +588,14 @@
                     dbConnected.value = true;
                     if (snap.exists()) {
                         const d = snap.data();
-                        if(d.flights) flights.value = d.flights;
-                        if(d.itinerary) itinerary.value = d.itinerary;
-                        if(d.preCheck) preCheck.value = d.preCheck;
-                        if(d.luggage) luggage.value = d.luggage;
-                        if(d.shopping) shopping.value = d.shopping;
-                        if(d.expenses) expenses.value = d.expenses;
-                        if(d.lastUpdatedBy) lastUpdatedBy.value = d.lastUpdatedBy;
+                        // 僅在數據真正變動時更新，減少渲染負擔
+                        if(JSON.stringify(flights.value) !== JSON.stringify(d.flights)) flights.value = d.flights;
+                        if(JSON.stringify(itinerary.value) !== JSON.stringify(d.itinerary)) itinerary.value = d.itinerary;
+                        if(JSON.stringify(preCheck.value) !== JSON.stringify(d.preCheck)) preCheck.value = d.preCheck;
+                        if(JSON.stringify(luggage.value) !== JSON.stringify(d.luggage)) luggage.value = d.luggage;
+                        if(JSON.stringify(shopping.value) !== JSON.stringify(d.shopping)) shopping.value = d.shopping;
+                        if(JSON.stringify(expenses.value) !== JSON.stringify(d.expenses)) expenses.value = d.expenses;
+                        lastUpdatedBy.value = d.lastUpdatedBy;
                         nextTick(() => initSortable());
                     }
                 }, (err) => { dbConnected.value = false; });
