@@ -129,7 +129,7 @@
                 </div>
             </div>
 
-            <!-- 日期選擇器：現在包含兩個 5/5 -->
+            <!-- 日期選擇 -->
             <div class="flex overflow-x-auto no-scrollbar space-x-4 pb-4">
                 <div v-for="date in dates" :key="date.id" @click="activeDate = date.id" 
                      class="flex flex-col items-center justify-center min-w-[62px] h-[78px] rounded-2xl transition-all shadow-sm"
@@ -139,6 +139,7 @@
                 </div>
             </div>
 
+            <!-- 行程列表 -->
             <div class="space-y-4 mt-4">
                 <div v-for="(item, idx) in itinerary[activeDate]" :key="item.id" @click="openEditItinerary(item, idx)" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-95 transition-all">
                     <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover">
@@ -176,9 +177,18 @@
                 <div class="space-y-4">
                     <div class="relative"><input type="number" v-model="jpy" @input="jpyToTwd" class="w-full bg-gray-50 p-4 pt-8 rounded-2xl font-bold text-xl outline-none border border-gray-100"><span class="absolute top-2 left-4 text-[10px] text-gray-400 font-black uppercase tracking-widest">日幣 JPY (¥)</span></div>
                     <div class="relative"><input type="number" v-model="twd" @input="twdToJpy" class="w-full bg-gray-50 p-4 pt-8 rounded-2xl font-bold text-xl outline-none border border-gray-100"><span class="absolute top-2 left-4 text-[10px] text-gray-400 font-black uppercase tracking-widest">台幣 TWD (NT$)</span></div>
+                    <div class="bg-gray-50 p-4 rounded-2xl">
+                        <div class="flex justify-between items-end mb-2"><span class="text-[10px] font-bold text-gray-400">免稅門檻 (¥5,500)</span><span class="text-[10px] font-black" :class="jpy >= 5500 ? 'text-green-500' : 'text-lavender-500'">{{ jpy >= 5500 ? 'SUCCESS 免稅！' : `差 ¥${(5500 - jpy).toLocaleString()}` }}</span></div>
+                        <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mb-4"><div class="bg-lavender-400 h-full transition-all duration-500" :style="{ width: Math.min((jpy / 5500) * 100, 100) + '%' }"></div></div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center p-2 bg-white rounded-xl"><p class="text-[9px] text-gray-400 font-bold uppercase">10% 消費稅</p><p class="text-sm font-black">¥{{ Math.floor(jpy * 0.1).toLocaleString() }}</p></div>
+                            <div class="text-center p-2 bg-white rounded-xl"><p class="text-[9px] text-gray-400 font-bold uppercase">未稅價格</p><p class="text-sm font-black">¥{{ Math.ceil(jpy / 1.1).toLocaleString() }}</p></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
+            <!-- 行前檢查 -->
             <div class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden">
                 <div class="p-6 pb-2 flex justify-between items-center">
                     <h3 class="font-bold text-gray-800 flex items-center"><i class="ph-fill ph-check-square mr-2 text-lavender-500"></i>行前檢查</h3>
@@ -193,7 +203,9 @@
                         <div v-for="(item, iIdx) in cat.items" :key="iIdx" class="flex items-center justify-between group">
                             <label class="flex items-center space-x-3 cursor-pointer flex-1">
                                 <input type="checkbox" v-model="item.done" @change="saveData" class="w-5 h-5 accent-lavender-500 rounded-lg shrink-0">
-                                <input v-model="item.name" @change="saveData" :class="item.done ? 'text-gray-300 line-through italic' : 'text-sm font-medium text-gray-700'" class="bg-transparent border-none outline-none w-full p-0">
+                                <input v-model="item.name" @change="saveData" 
+                                       :class="item.done ? 'text-gray-300 line-through italic' : 'text-sm font-medium text-gray-700'" 
+                                       class="bg-transparent border-none outline-none w-full p-0 focus:ring-0">
                             </label>
                             <button @click="cat.items.splice(iIdx, 1); saveData()" class="text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph ph-x-circle text-lg"></i></button>
                         </div>
@@ -202,6 +214,7 @@
                 </div>
             </div>
 
+            <!-- 行李清單 -->
             <div class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden">
                 <div class="p-6 pb-2 flex justify-between items-center">
                     <h3 class="font-bold text-gray-800 flex items-center"><i class="ph-fill ph-suitcase mr-2 text-lavender-500"></i>行李清單</h3>
@@ -216,7 +229,9 @@
                         <div v-for="(item, iIdx) in cat.items" :key="iIdx" class="flex items-center justify-between group">
                             <label class="flex items-center space-x-3 cursor-pointer flex-1">
                                 <input type="checkbox" v-model="item.done" @change="saveData" class="w-5 h-5 accent-lavender-500 rounded-lg shrink-0">
-                                <input v-model="item.name" @change="saveData" :class="item.done ? 'text-gray-300 line-through italic' : 'text-sm font-medium text-gray-700'" class="bg-transparent border-none outline-none w-full p-0">
+                                <input v-model="item.name" @change="saveData" 
+                                       :class="item.done ? 'text-gray-300 line-through italic' : 'text-sm font-medium text-gray-700'" 
+                                       class="bg-transparent border-none outline-none w-full p-0 focus:ring-0">
                             </label>
                             <button @click="cat.items.splice(iIdx, 1); saveData()" class="text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph ph-x-circle text-lg"></i></button>
                         </div>
@@ -287,7 +302,7 @@
                 </div>
                 <button @click="saveFlight" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl mt-4">儲存機票資訊</button>
             </div>
-
+            
             <div v-if="modal.type === 'itinerary'" class="space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                     <select v-model="form.category" class="bg-gray-50 p-4 rounded-2xl font-bold outline-none">
@@ -300,9 +315,9 @@
                 <div class="space-y-2">
                     <p class="text-[10px] text-gray-400 font-black ml-2 uppercase">行程照片</p>
                     <div class="flex items-center space-x-3">
-                        <label class="flex-1 bg-lavender-50 border-2 border-dashed border-lavender-200 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer">
+                        <label class="flex-1 bg-lavender-50 border-2 border-dashed border-lavender-200 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-lavender-100 transition-all">
                             <i class="ph ph-image-square text-2xl text-lavender-400"></i>
-                            <span class="text-[10px] font-bold text-lavender-500 mt-1">{{ form.image ? '已選取' : '上傳照片' }}</span>
+                            <span class="text-[10px] font-bold text-lavender-500 mt-1">{{ form.image ? '已選取照片' : '點擊選取照片' }}</span>
                             <input type="file" @change="handleImageUpload" class="hidden" accept="image/*">
                         </label>
                         <div v-if="form.image" class="w-20 h-20 rounded-2xl overflow-hidden relative group">
@@ -313,12 +328,14 @@
                 </div>
                 <textarea v-model="form.note" class="w-full bg-gray-50 p-4 rounded-2xl outline-none" rows="3" placeholder="備註內容..."></textarea>
                 <div class="grid grid-cols-2 gap-3 mt-4">
-                    <button v-if="modal.mode === 'edit'" @click="deleteItinerary(modal.idx)" class="bg-gray-100 text-gray-400 font-black p-5 rounded-3xl">刪除</button>
-                    <button @click="saveItinerary" :class="modal.mode === 'edit' ? '' : 'col-span-2'" class="bg-lavender-500 text-white font-black p-5 rounded-3xl shadow-lg">儲存行程</button>
+                    <button v-if="modal.mode === 'edit'" @click="deleteItinerary(modal.idx)" class="bg-gray-100 text-gray-400 font-black p-5 rounded-3xl">刪除行程</button>
+                    <button @click="saveItinerary" :class="modal.mode === 'edit' ? 'bg-lavender-500' : 'col-span-2 bg-lavender-500'" class="text-white font-black p-5 rounded-3xl shadow-lg">
+                        {{ modal.mode === 'edit' ? '更新行程' : '新增行程' }}
+                    </button>
                 </div>
             </div>
-
-            <div v-if="modal.type === 'shoppingItem'" class="space-y-4">
+            
+            <div v-if="modal.type === 'shoppingItem'" class="space-y-4 pb-10">
                 <input v-model="formShop.name" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none text-lg" placeholder="商品名稱">
                 <div class="flex flex-wrap gap-2">
                     <button v-for="t in ['必買', '伴手禮', '送禮', '自己用', '保健', '美妝', '代購']" :key="t" @click="toggleTag(t)" :class="formShop.tags.includes(t) ? 'bg-lavender-500 text-white' : 'bg-gray-100 text-gray-400'" class="text-xs px-3 py-1.5 rounded-full font-bold">#{{ t }}</button>
@@ -326,7 +343,7 @@
                 </div>
                 <button @click="saveShoppingItem" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl mt-6">加入清單</button>
             </div>
-
+            
             <div v-if="modal.type === 'expense'" class="space-y-4">
                 <input v-model="form.name" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none text-lg" placeholder="消費項目">
                 <input type="number" v-model="form.amount" class="w-full bg-gray-50 p-4 rounded-2xl font-black text-2xl outline-none" placeholder="NT$ 金額">
@@ -371,14 +388,14 @@
             const currentTime = ref('');
             const weather = ref({ temp: '--', desc: '更新中...', icon: 'ph ph-sun-dim' });
 
-            // 修改處：在 5/5 後面多加一個 5/5，ID 必須唯一所以使用 '2026-05-05-v2'
+            // 在這裡多加入了一個 5/5 在原本的後面
             const dates = [
-                { id: '2026-05-05', day: 'Tue', date: '5/5' },
-                { id: '2026-05-05-v2', day: 'Tue', date: '5/5' },
-                { id: '2026-05-06', day: 'Wed', date: '5/6' },
-                { id: '2026-05-07', day: 'Thu', date: '5/7' },
+                { id: '2026-05-05', day: 'Tue', date: '5/5' }, 
+                { id: '2026-05-05_2', day: 'Tue', date: '5/5' }, // 多加入的一個 5/5
+                { id: '2026-05-06', day: 'Wed', date: '5/6' }, 
+                { id: '2026-05-07', day: 'Thu', date: '5/7' }, 
                 { id: '2026-05-08', day: 'Fri', date: '5/8' },
-                { id: '2026-05-09', day: 'Sat', date: '5/9' },
+                { id: '2026-05-09', day: 'Sat', date: '5/9' }, 
                 { id: '2026-05-10', day: 'Sun', date: '5/10' }
             ];
 
@@ -387,9 +404,10 @@
                 return: { airline: '星宇航空', code: 'JX841', from: '福岡', fromCode: 'FUK', to: '台北', toCode: 'TPE', time1: '12:20', time2: '13:45' }
             });
 
-            // 修改處：初始化行程結構，包含第二個 5/5 的 key
             const itinerary = ref({
-                '2026-05-05': [], '2026-05-05-v2': [], '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
+                '2026-05-05': [], 
+                '2026-05-05_2': [], // 多加入的一個 5/5 對應的容器
+                '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
             });
 
             const preCheck = ref([{ name: '行前文件', items: [{ name: '護照', done: true }, { name: 'VJW', done: false }] }]);
@@ -404,7 +422,7 @@
             const customTag = ref('');
 
             const changeUserName = () => {
-                const inputName = prompt('請輸入你的名字', userName.value);
+                const inputName = prompt('請輸入你的名字 (讓大家知道是誰在更新喔！)', userName.value);
                 if (inputName && inputName.trim() !== '') {
                     userName.value = inputName.trim();
                     localStorage.setItem('fukuoka_username', userName.value);
@@ -423,6 +441,7 @@
                     lastUpdate: Date.now(),
                     lastUpdatedBy: userName.value || '神秘旅伴'
                 };
+                localStorage.setItem('fukuoka_honeymoon_vfinal', JSON.stringify(data));
                 try { await setDoc(dbRef, data); } catch (e) { console.error("Cloud Sync Failed", e); }
             };
 
@@ -491,9 +510,9 @@
                         const d = snap.data();
                         if(d.flights) flights.value = d.flights;
                         if(d.itinerary) {
-                            // 確保新的 5/5 v2 鍵存在
-                            if(!d.itinerary['2026-05-05-v2']) d.itinerary['2026-05-05-v2'] = [];
+                            // 確保 5/5_2 也會被更新
                             itinerary.value = d.itinerary;
+                            if(!itinerary.value['2026-05-05_2']) itinerary.value['2026-05-05_2'] = [];
                         }
                         if(d.preCheck) preCheck.value = d.preCheck;
                         if(d.luggage) luggage.value = d.luggage;
