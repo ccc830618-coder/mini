@@ -6,6 +6,10 @@
     <title>福岡蜜月旅行</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入拖拽庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/4.1.0/vuedraggable.umd.min.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script>
         tailwind.config = {
@@ -29,12 +33,20 @@
         @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s ease-out; }
         [v-cloak] { display: none; }
+         /* 優化滑動流暢度 */
+        .smooth-scroll { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+        .draggable-ghost { opacity: 0.5; background: #E6D4F4 !important; border: 2px dashed #A160CE !important; }
+        
+        /* 修復點擊穿透與遮擋問題 */
+        header { z-index: 5; }
+        main { z-index: 10; will-change: transform; }
+        .date-container { position: relative; z-index: 30; }
     </style>
 </head>
 <body class="text-gray-700 antialiased">
 
 <div id="app" v-cloak class="max-w-md mx-auto bg-lavender-50 min-h-screen relative shadow-xl overflow-hidden">
-    
+
     <!-- 頁首 Banner -->
     <header class="relative h-[220px] w-full bg-lavender-200">
         <img src="M6cH6f4bdmcJryLEtnmhGktaYkUSfReqd8p9GlWL__1682_1121.jpg" alt="Fukuoka" class="w-full h-full object-cover object-left" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80'">
@@ -524,3 +536,4 @@
 </script>
 </body>
 </html>
+
