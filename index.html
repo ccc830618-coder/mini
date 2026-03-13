@@ -16,7 +16,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
         body { background-color: #FDFBFD; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
         [v-cloak] { display: none !important; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
         @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s ease-out; }
     </style>
@@ -25,16 +24,17 @@
 
 <div id="app" v-cloak class="max-w-md mx-auto bg-lavender-50 min-h-screen relative shadow-xl overflow-hidden">
     
-    <!-- 頁首 Banner -->
+    <!-- Header -->
     <header class="relative h-[180px] w-full bg-lavender-200">
         <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80" alt="Fukuoka" class="w-full h-full object-cover">
-        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-        <div class="absolute bottom-12 left-0 right-0 text-center text-white font-black tracking-widest italic text-2xl drop-shadow-lg">FUKUOKA</div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+        <div class="absolute bottom-12 left-0 right-0 text-center text-white font-black tracking-widest italic text-2xl drop-shadow-lg">FUKUOKA 2026</div>
         
+        <!-- Tab Navigation -->
         <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-1 bg-white/20 backdrop-blur-md p-1 rounded-2xl border border-white/30 z-20">
             <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id" 
                     :class="activeTab === tab.id ? 'bg-white text-lavender-600 shadow-sm' : 'text-white'" 
-                    class="px-5 py-1.5 rounded-xl text-xs font-black transition-all">
+                    class="px-6 py-1.5 rounded-xl text-xs font-black transition-all">
                 {{ tab.name }}
             </button>
         </div>
@@ -42,7 +42,7 @@
 
     <main class="bg-lavender-50 rounded-t-[32px] -mt-6 relative z-10 min-h-[calc(100vh-156px)] pb-24 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] px-5 pt-6">
         
-        <!-- 同步狀態 -->
+        <!-- Status Indicator -->
         <div class="flex items-center justify-center space-x-2 mb-6">
             <div :class="dbConnected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-400'" class="w-2 h-2 rounded-full"></div>
             <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
@@ -50,13 +50,12 @@
             </span>
         </div>
 
-        <!-- 行程 -->
+        <!-- Itinerary Tab -->
         <div v-show="activeTab === 'itinerary'" class="animate-slide-up space-y-6">
-            <!-- 機票卡片 -->
             <div class="grid grid-cols-2 gap-3">
                 <div v-for="(f, key) in flights" :key="key" @click="openFlightEdit(key)" class="bg-white p-5 rounded-[2rem] shadow-sm border border-lavender-100 active:scale-95 transition-all cursor-pointer">
                     <div class="flex justify-between items-center mb-3">
-                        <span class="text-[9px] font-black text-white px-2 py-0.5 rounded" :class="key === 'dep' ? 'bg-lavender-500' : 'bg-gray-800'">{{ key === 'dep' ? '5/5 GO' : '5/10 BACK' }}</span>
+                        <span class="text-[9px] font-black text-white px-2 py-0.5 rounded italic" :class="key === 'dep' ? 'bg-lavender-500' : 'bg-gray-800'">{{ key === 'dep' ? '5/5 GO' : '5/10 BACK' }}</span>
                         <i class="ph-bold ph-airplane-tilt text-lavender-100 text-xl"></i>
                     </div>
                     <div class="text-center">
@@ -70,41 +69,41 @@
                     </div>
                 </div>
             </div>
-            <div class="text-center py-12 text-gray-300 font-black border-2 border-dashed border-lavender-100 rounded-[2.5rem] text-[10px] tracking-widest uppercase">Itinerary Module Ready</div>
+            <div class="text-center py-12 text-gray-300 font-black border-2 border-dashed border-lavender-100 rounded-[2.5rem] text-[10px] tracking-widest uppercase italic">Wedding Trip Journey</div>
         </div>
 
-        <!-- 購物 -->
+        <!-- Shopping Tab -->
         <div v-show="activeTab === 'shopping'" class="animate-slide-up space-y-5">
             <div v-for="(cat, cIdx) in shopping" :key="cIdx" class="bg-white rounded-[2.5rem] shadow-sm border border-lavender-100 overflow-hidden">
                 <div class="p-4 bg-lavender-50/50 flex justify-between items-center px-6">
                     <input v-model="cat.name" @change="saveData" class="font-black text-gray-700 bg-transparent outline-none w-full focus:text-lavender-600">
-                    <button @click="confirmDeleteCat(cIdx)" class="text-gray-300 hover:text-red-400 p-2"><i class="ph-bold ph-trash text-lg"></i></button>
+                    <button @click="confirmDeleteCat(cIdx)" class="text-gray-300 hover:text-red-400 p-2"><i class="ph-bold ph-trash-simple text-lg"></i></button>
                 </div>
-                <div class="p-6 space-y-5">
-                    <div v-for="(item, iIdx) in cat.items" :key="iIdx" class="pb-2">
+                <div class="p-6 space-y-6">
+                    <div v-for="(item, iIdx) in cat.items" :key="iIdx" class="group">
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center space-x-3">
-                                <input type="checkbox" v-model="item.done" @change="saveData" class="w-6 h-6 accent-lavender-500 rounded-xl">
+                                <input type="checkbox" v-model="item.done" @change="saveData" class="w-6 h-6 accent-lavender-500 rounded-xl cursor-pointer">
                                 <input v-model="item.name" @change="saveData" class="font-bold text-gray-800 outline-none" :class="item.done ? 'line-through text-gray-300' : ''">
                             </div>
-                            <button @click="cat.items.splice(iIdx, 1); saveData()" class="text-gray-200"><i class="ph-bold ph-x-circle text-xl"></i></button>
+                            <button @click="cat.items.splice(iIdx, 1); saveData()" class="text-gray-200"><i class="ph-bold ph-minus-circle text-xl"></i></button>
                         </div>
                         <div class="flex flex-wrap gap-2 pl-9">
                             <span v-for="(tag, tIdx) in item.tags" :key="tIdx" @click="removeTag(item, tIdx)" class="text-[9px] font-black bg-lavender-50 text-lavender-500 px-3 py-1 rounded-full border border-lavender-100 cursor-pointer">
-                                {{ tag }}
+                                # {{ tag }}
                             </span>
                             <button @click="addNewTag(item)" class="text-[9px] font-black text-gray-300 border border-dashed border-gray-200 px-3 py-1 rounded-full">＋標籤</button>
                         </div>
                     </div>
-                    <button @click="cat.items.push({name: '新商品', done: false, tags: ['必買']}); saveData()" class="w-full py-3 bg-gray-50 rounded-2xl text-[10px] text-gray-400 font-black uppercase tracking-widest">新增項目</button>
+                    <button @click="cat.items.push({name: '新商品', done: false, tags: ['必買']}); saveData()" class="w-full py-3 bg-gray-50 rounded-2xl text-[10px] text-gray-400 font-black uppercase tracking-widest hover:bg-lavender-50 transition-colors">新增商品項目</button>
                 </div>
             </div>
-            <button @click="shopping.push({name: '新清單', items: []}); saveData()" class="w-full py-6 border-2 border-dashed border-lavender-200 rounded-[2.5rem] text-lavender-300 font-black text-xs">＋新增購物類別</button>
+            <button @click="shopping.push({name: '新清單大項', items: []}); saveData()" class="w-full py-6 border-2 border-dashed border-lavender-200 rounded-[2.5rem] text-lavender-300 font-black text-xs uppercase tracking-widest">＋新增類別</button>
         </div>
 
     </main>
 
-    <!-- 編輯視窗 -->
+    <!-- Edit Modal -->
     <div v-if="modal.show" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-end">
         <div class="bg-white w-full max-w-md mx-auto rounded-t-[40px] p-8 animate-slide-up pb-12">
             <div class="flex justify-between items-center mb-8">
@@ -112,17 +111,17 @@
                 <button @click="modal.show = false" class="bg-gray-50 p-2 rounded-full text-gray-300"><i class="ph ph-x text-xl"></i></button>
             </div>
             <div v-if="modal.type === 'flight'" class="space-y-5">
-                <input v-model="form.code" class="w-full bg-gray-50 p-4 rounded-2xl font-black outline-none border-2 border-transparent focus:border-lavender-200" placeholder="航班編號">
+                <input v-model="form.code" class="w-full bg-gray-50 p-4 rounded-2xl font-black outline-none border-2 border-transparent focus:border-lavender-200 uppercase" placeholder="航班號碼">
                 <div class="grid grid-cols-2 gap-3">
                     <input v-model="form.depTime" class="bg-gray-50 p-4 rounded-2xl font-black text-center" placeholder="起飛">
                     <input v-model="form.arrTime" class="bg-gray-50 p-4 rounded-2xl font-black text-center" placeholder="抵達">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <input v-model="form.fromCode" placeholder="TPE" class="bg-gray-50 p-4 rounded-2xl font-black text-center uppercase">
-                    <input v-model="form.toCode" placeholder="FUK" class="bg-gray-50 p-4 rounded-2xl font-black text-center uppercase">
+                    <input v-model="form.fromCode" class="bg-gray-50 p-4 rounded-2xl font-black text-center uppercase" placeholder="TPE">
+                    <input v-model="form.toCode" class="bg-gray-50 p-4 rounded-2xl font-black text-center uppercase" placeholder="FUK">
                 </div>
                 <input v-model="form.terminal" class="w-full bg-gray-50 p-4 rounded-2xl font-black outline-none" placeholder="航廈">
-                <button @click="saveFlight" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl shadow-lg active:scale-95 transition-all mt-4">儲存至雲端</button>
+                <button @click="saveFlight" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl shadow-lg active:scale-95 transition-all mt-4 text-lg">更新至雲端</button>
             </div>
         </div>
     </div>
@@ -132,7 +131,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-    // 💡 已經根據您的截圖填入正確金鑰！
+    // 💡 已經填入您截圖中的正確金鑰！
     const firebaseConfig = {
         apiKey: "AIzaSyC_PS1_6Ckqv6acED6Rs_A3r", 
         authDomain: "mini-app-50ba0.firebaseapp.com",
@@ -153,7 +152,7 @@
                 dep: { code: 'BR106', depTime: '08:10', arrTime: '11:35', fromCode: 'TPE', toCode: 'FUK', terminal: '2' },
                 ret: { code: 'BR105', depTime: '12:20', arrTime: '13:50', fromCode: 'FUK', toCode: 'TPE', terminal: '1' }
             });
-            const shopping = ref([{ name: '藥妝清單', items: [{name: '合利他命', done: false, tags: ['必買']}] }]);
+            const shopping = ref([{ name: '必買清單', items: [{name: '合利他命', done: false, tags: ['藥妝']}] }]);
             const modal = ref({ show: false, type: '', title: '', target: null });
             const form = ref({});
 
@@ -162,12 +161,12 @@
                     flights: JSON.parse(JSON.stringify(flights.value)), 
                     shopping: JSON.parse(JSON.stringify(shopping.value))
                 };
-                localStorage.setItem('fukuoka_v3_cloud', JSON.stringify(data));
+                localStorage.setItem('fukuoka_vfinal', JSON.stringify(data));
                 if (window.dbRef) await setDoc(window.dbRef, data).catch(e => console.error("Sync Error", e));
             };
 
             const openFlightEdit = (key) => {
-                modal.value = { show: true, type: 'flight', title: '航班詳細編輯', target: key };
+                modal.value = { show: true, type: 'flight', title: '編輯航班詳情', target: key };
                 form.value = { ...flights.value[key] };
             };
 
@@ -193,7 +192,8 @@
                 try {
                     const app = initializeApp(firebaseConfig);
                     const db = getFirestore(app);
-                    window.dbRef = doc(db, 'honeymoon', 'fukuoka2026');
+                    // 指定存儲位置
+                    window.dbRef = doc(db, 'honeymoon', 'fukuoka_2026');
                     
                     onSnapshot(window.dbRef, (snap) => {
                         dbConnected.value = true;
