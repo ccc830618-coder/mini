@@ -517,22 +517,30 @@
                 reader.readAsDataURL(file);
             };
 
-            const saveItinerary = () => {
-                if (!itinerary.value[activeDate.value]) itinerary.value[activeDate.value] = [];
-                
-                if (modal.value.mode === 'edit') { 
-                    itinerary.value[activeDate.value][modal.value.idx] = { ...form.value }; 
-                } 
-                else { 
-                    itinerary.value[activeDate.value].push({ ...form.value, id: Date.now() }); 
-                }
-                modal.value.show = false; 
-                saveData();
-            };
+           // 尋找並修改這個函式
+const saveItinerary = () => {
+    // 確保該日期的陣列存在
+    if (!itinerary.value[activeDate.value]) {
+        itinerary.value[activeDate.value] = [];
+    }
+    
+    // 建立一個新陣列來觸發響應式
+    const currentList = [...itinerary.value[activeDate.value]];
 
-            const onDraggableEnd = () => {
-                saveData();
-            };
+    if (modal.value.mode === 'edit') { 
+        currentList[modal.value.idx] = { ...form.value }; 
+    } 
+    else { 
+        // 確保新項目有 ID，這對 draggable 很重要
+        currentList.push({ ...form.value, id: Date.now() }); 
+    }
+
+    // 將新陣列賦值回去
+    itinerary.value[activeDate.value] = currentList;
+    
+    modal.value.show = false; 
+    saveData(); // 儲存到 Firebase
+};
 
             const deleteItinerary = (idx) => { itinerary.value[activeDate.value].splice(idx, 1); modal.value.show = false; saveData(); };
             const saveExpense = () => { expenses.value.unshift({ ...form.value, id: Date.now() }); modal.value.show = false; saveData(); };
