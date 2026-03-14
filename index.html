@@ -591,178 +591,97 @@
     }).mount('#app');
 </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-
-<script>
-(function(){
-
-/* =====================
-  倒數
-===================== */
-function addCountdown(){
-  const target=new Date("2025-11-30T00:00:00+08:00");
-  const today=new Date();
-  const diff=Math.ceil((target-today)/86400000);
-  const header=document.querySelector("header");
-  if(!header) return;
-  if(document.querySelector("#countdownBox")) return;
-  const box=document.createElement("div");
-  box.id="countdownBox";
-  box.style.position="absolute";
-  box.style.left="14px";
-  box.style.top="14px";
-  box.style.background="rgba(255,255,255,0.85)";
-  box.style.padding="6px 10px";
-  box.style.borderRadius="12px";
-  box.style.fontSize="12px";
-  box.innerHTML="✈️ "+diff+" days";
-  header.appendChild(box);
-}
-
-/* =====================
-  7天福岡天氣
-===================== */
-async function loadWeather(){
-  try{
-    const res=await fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo");
-    const data=await res.json();
-    const days=data.daily.time;
-    const temps=data.daily.temperature_2m_max;
-    const header=document.querySelector("header");
-    if(!header) return;
-    if(document.querySelector("#weatherBox")) return;
-    const box=document.createElement("div");
-    box.id="weatherBox";
-    box.style.position="absolute";
-    box.style.right="14px";
-    box.style.top="14px";
-    box.style.background="rgba(255,255,255,0.85)";
-    box.style.padding="6px";
-    box.style.borderRadius="12px";
-    box.style.fontSize="11px";
-    let html="";
-    for(let i=0;i<7;i++){
-      const d=new Date(days[i]);
-      const m=d.getMonth()+1;
-      const da=d.getDate();
-      html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`;
-    }
-    box.innerHTML=html;
-    header.appendChild(box);
-  }catch(e){}
-}
-
-/* =====================
-  長按 10 秒拖曳
-===================== */
-function enableLongPressDrag(){
-  const observer=new MutationObserver(()=>{
-    const list=document.querySelector(".space-y-4");
-    if(!list) return;
-    if(list.dataset.dragReady) return;
-    list.dataset.dragReady=true;
-    list.querySelectorAll(":scope > *").forEach(card=>{
-      if(card.querySelector(".drag-handle")) return;
-      card.style.position="relative";
-      const handle=document.createElement("div");
-      handle.innerHTML="⋮⋮";
-      handle.className="drag-handle";
-      handle.style.position="absolute";
-      handle.style.right="8px";
-      handle.style.top="8px";
-      handle.style.cursor="grab";
-      handle.style.fontSize="16px";
-      handle.style.color="#bbb";
-      card.appendChild(handle);
-      // 長按拖曳
-      let timer=null;
-      handle.addEventListener("mousedown",e=>{
-        e.preventDefault();
-        timer=setTimeout(()=>{
-          handle.style.cursor="grabbing";
-          new Sortable(list,{
-            handle:".drag-handle",
-            animation:150
-          });
-        },10000); // 10秒
-      });
-      handle.addEventListener("mouseup",e=>{
-        clearTimeout(timer);
-        handle.style.cursor="grab";
-      });
-      handle.addEventListener("mouseleave",e=>clearTimeout(timer));
+// ----------------------------
+// 1️⃣ 行程拖曳排序（點點 + 長按10秒）
+// ----------------------------
+const itineraryList = document.getElementById('itinerary-list');
+const sortable = Sortable.create(itineraryList, {
+  handle: '.drag-handle',
+  animation: 150,
+  delay: 10000, // 長按10秒才可拖動
+  delayOnTouchOnly: true,
+  onEnd: function(evt) {
+    const order = [];
+    itineraryList.querySelectorAll('.itinerary-card').forEach(card => {
+      order.push(card.dataset.id);
     });
-  });
-  observer.observe(document.body,{childList:true,subtree:true});
-}
+    updateOrderToServer(order);
+    refreshTransportBlocks();
+  }
+});
 
-/* =====================
-  美食 TAB
-===================== */
-function addFoodTab(){
-  const observer=new MutationObserver(()=>{
-    const tabs=[...document.querySelectorAll("button")];
-    const shopTab=tabs.find(t=>t.innerText.includes("購物"));
-    if(!shopTab) return;
-    if(document.querySelector("#food-tab")) return;
-    const foodTab=shopTab.cloneNode(true);
-    foodTab.id="food-tab";
-    foodTab.innerText="美食";
-    shopTab.after(foodTab);
+// ----------------------------
+// 2️⃣ Tab 切換 + 美食內容
+// ----------------------------
+const tabButtons = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
 
-    // 內容區域
-    const container=document.createElement("div");
-    container.id="food-content";
-    container.style.padding="8px";
-    container.innerHTML="🍜 附近拉麵：<ul><li>博多一幸舎</li><li>元祖長浜屋</li><li>だるま</li></ul>";
-    shopTab.parentNode.parentNode.appendChild(container);
-    container.style.display="none";
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
 
-    foodTab.onclick=()=>{
-      container.style.display=container.style.display==="none"?"block":"none";
+    tabContents.forEach(c => c.classList.remove('active'));
+    const target = document.getElementById(btn.dataset.target);
+    target.classList.add('active');
+
+    if(btn.dataset.target === 'food'){
+      generateNearbyRamen(target);
     }
   });
-  observer.observe(document.body,{childList:true,subtree:true});
-}
+});
 
-/* =====================
-  行程交通時間
-===================== */
-function updateTransitTime(){
-  const list=document.querySelector(".space-y-4");
-  if(!list) return;
-  const cards=[...list.children];
-  // 移除舊交通區塊
-  list.querySelectorAll(".transit").forEach(t=>t.remove());
-
-  cards.forEach((card,i)=>{
-    if(i===cards.length-1) return;
-    const box=document.createElement("div");
-    box.className="transit";
-    box.style.textAlign="center";
-    box.style.fontSize="12px";
-    box.style.color="#888";
-    box.style.margin="6px";
-    // 假資料
-    const walk=Math.floor(Math.random()*10)+5;
-    const bus=Math.floor(Math.random()*15)+10;
-    box.innerText=`🚶 ${walk} 分 | 🚌 ${bus} 分`;
-    card.after(box);
+function generateNearbyRamen(container){
+  container.innerHTML = '';
+  const ramenList = [
+    { name: "博多一蘭拉麵", rating: 4.5 },
+    { name: "博多豚骨拉麵", rating: 4.2 },
+    { name: "元祖長浜屋", rating: 4.0 }
+  ];
+  ramenList.forEach(r => {
+    const div = document.createElement('div');
+    div.textContent = `${r.name} ⭐${r.rating}`;
+    container.appendChild(div);
   });
 }
 
-/* =====================
-  啟動
-===================== */
-window.addEventListener("load",()=>{
-  addCountdown();
-  loadWeather();
-  enableLongPressDrag();
-  addFoodTab();
-  updateTransitTime();
-  setInterval(updateTransitTime,2000);
-});
-})();
-</script>  
+// ----------------------------
+// 3️⃣ 行程交通時間
+// ----------------------------
+function refreshTransportBlocks(){
+  itineraryList.querySelectorAll('.transport-block').forEach(el => el.remove());
+
+  const cards = itineraryList.querySelectorAll('.itinerary-card');
+  for(let i = 0; i < cards.length -1; i++){
+    const block = document.createElement('div');
+    block.className = 'transport-block';
+    const fromCard = cards[i];
+    const toCard = cards[i+1];
+    const transport = fromCard.dataset.transport || '步行';
+    block.textContent = `${transport} 時間: ${calculateTransportTime(transport)} 分鐘`;
+    toCard.before(block);
+  }
+}
+
+function calculateTransportTime(transport){
+  if(transport === '步行') return Math.floor(Math.random()*10)+5;
+  if(transport === '大眾運輸') return Math.floor(Math.random()*20)+10;
+  return 0;
+}
+
+// ----------------------------
+// 新增行程表單範例
+// ----------------------------
+function addItineraryCard(id, content, transport='步行'){
+  const card = document.createElement('div');
+  card.className = 'itinerary-card';
+  card.dataset.id = id;
+  card.dataset.transport = transport;
+  card.innerHTML = `<div class="drag-handle">⠿</div>
+                    <div class="card-content">${content}</div>`;
+  itineraryList.appendChild(card);
+  refreshTransportBlocks();
+}
+    
 </body>
 </html>
