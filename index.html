@@ -596,10 +596,9 @@
 <script>
 window.addEventListener("load", function(){
 
-  /* ✈️ 旅行倒數（動態更新到 2026/05/05） */
+  /* ✈️ 旅行倒數（到 2026/05/05） */
   const target = new Date("2026-05-05T00:00:00+08:00");
   const header = document.querySelector("header");
-
   if(header){
     const box = document.createElement("div");
     box.id = "countdownBox";
@@ -617,12 +616,11 @@ window.addEventListener("load", function(){
       const diff = Math.ceil((target - today) / 86400000);
       box.innerHTML = "✈️ " + diff + " days";
     }
-
     updateCountdown();
     setInterval(updateCountdown, 60000);
   }
 
-  /* 🌤️ 福岡7天天氣 */
+  /* 🌤️ 福岡 7 天天氣 */
   fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo")
     .then(res=>res.json())
     .then(data=>{
@@ -651,8 +649,50 @@ window.addEventListener("load", function(){
   /* 📋 行程拖曳 */
   const list=document.querySelector(".space-y-4");
   if(list){
-    new Sortable(list,{
-      animation:150
+    new Sortable(list, { animation: 150 });
+  }
+
+  /* 🖼️ 行程卡縮略圖 */
+  if(list){
+    const cards = list.querySelectorAll(":scope > *");
+    cards.forEach(card=>{
+      if(card.querySelector(".card-photo")) return; // 避免重複
+      const photoDiv = document.createElement("div");
+      photoDiv.className = "card-photo";
+      photoDiv.style.marginBottom = "6px";
+      // 範例縮略圖，可改成真實 URL
+      const img = document.createElement("img");
+      img.src = "https://via.placeholder.com/300x120?text=行程照片";
+      img.alt = "行程照片";
+      img.style.width = "100%";
+      img.style.height = "120px";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "8px";
+      img.loading = "lazy";
+      photoDiv.appendChild(img);
+      card.prepend(photoDiv);
+
+      // 點擊大圖
+      img.addEventListener('click', ()=>{
+        const modal = document.createElement('div');
+        modal.style.position='fixed';
+        modal.style.top='0';
+        modal.style.left='0';
+        modal.style.width='100%';
+        modal.style.height='100%';
+        modal.style.background='rgba(0,0,0,0.8)';
+        modal.style.display='flex';
+        modal.style.alignItems='center';
+        modal.style.justifyContent='center';
+        modal.style.zIndex='9999';
+        const big = document.createElement('img');
+        big.src = img.src; // 可換成原圖
+        big.style.maxWidth='90%';
+        big.style.maxHeight='90%';
+        modal.appendChild(big);
+        modal.addEventListener('click', ()=>modal.remove());
+        document.body.appendChild(modal);
+      });
     });
   }
 
