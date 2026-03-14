@@ -591,7 +591,7 @@
     }).mount('#app');
 </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
 window.addEventListener("load", function(){
@@ -619,7 +619,6 @@ window.addEventListener("load", function(){
     }
 
     updateCountdown();
-    // 每分鐘更新一次（確保天數正確）
     setInterval(updateCountdown, 60000);
   }
 
@@ -657,7 +656,59 @@ window.addEventListener("load", function(){
     });
   }
 
+  /* 🚌🚶 行程交通時間 */
+  function updateTransitTimes(){
+    if(!list) return;
+    // 移除舊交通區塊
+    list.querySelectorAll(".transit").forEach(t=>t.remove());
+    const cards = Array.from(list.children);
+
+    cards.forEach((card,i)=>{
+      if(i === cards.length-1) return; // 最後一張不加
+      // 建立交通區塊
+      const box = document.createElement("div");
+      box.className = "transit";
+      box.style.textAlign = "center";
+      box.style.fontSize = "12px";
+      box.style.color = "#555";
+      box.style.margin = "6px 0";
+
+      // 預設交通方式選擇
+      const select = document.createElement("select");
+      select.style.marginLeft = "6px";
+      select.innerHTML = `<option value="walk">🚶 步行</option><option value="bus">🚌 大眾運輸</option>`;
+      box.innerHTML = "交通時間: ";
+      box.appendChild(select);
+
+      const timeSpan = document.createElement("span");
+      timeSpan.style.marginLeft = "6px";
+      // 初始顯示時間
+      const walkTime = Math.floor(Math.random()*10)+5;
+      const busTime  = Math.floor(Math.random()*15)+10;
+      timeSpan.innerText = `${walkTime} 分`;
+      box.appendChild(timeSpan);
+
+      // 改變選項時更新
+      select.addEventListener("change",()=>{
+        timeSpan.innerText = select.value === "walk" ? `${walkTime} 分` : `${busTime} 分`;
+      });
+
+      card.after(box);
+    });
+  }
+
+  // 初始生成
+  updateTransitTimes();
+
+  // 如果拖曳順序變動，重新計算交通
+  if(list){
+    new Sortable(list,{
+      animation:150,
+      onEnd: updateTransitTimes
+    });
+  }
+
 });
-</script>  
+</script>   
 </body>
 </html>
