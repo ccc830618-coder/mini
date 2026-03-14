@@ -590,6 +590,7 @@
         }
     }).mount('#app');
 </script>
+
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
@@ -601,14 +602,20 @@
 
 function addCountdown(){
 
-const date="2026-05-05"
-
-const target=new Date(date)
+const target=new Date("2025-11-30T00:00:00+08:00")
 const today=new Date()
 
 const diff=Math.ceil((target-today)/86400000)
 
+const header=document.querySelector("header")
+
+if(!header) return
+
+if(document.querySelector("#countdownBox")) return
+
 const box=document.createElement("div")
+
+box.id="countdownBox"
 
 box.style.position="absolute"
 box.style.left="14px"
@@ -620,9 +627,7 @@ box.style.fontSize="12px"
 
 box.innerHTML="✈️ "+diff+" days"
 
-const header=document.querySelector("header")
-
-if(header) header.appendChild(box)
+header.appendChild(box)
 
 }
 
@@ -644,7 +649,15 @@ const data=await res.json()
 const days=data.daily.time
 const temps=data.daily.temperature_2m_max
 
+const header=document.querySelector("header")
+
+if(!header) return
+
+if(document.querySelector("#weatherBox")) return
+
 const box=document.createElement("div")
+
+box.id="weatherBox"
 
 box.style.position="absolute"
 box.style.right="14px"
@@ -659,7 +672,6 @@ let html=""
 for(let i=0;i<7;i++){
 
 const d=new Date(days[i])
-
 const m=d.getMonth()+1
 const da=d.getDate()
 
@@ -669,9 +681,7 @@ html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`
 
 box.innerHTML=html
 
-const header=document.querySelector("header")
-
-if(header) header.appendChild(box)
+header.appendChild(box)
 
 }catch(e){}
 
@@ -682,32 +692,39 @@ if(header) header.appendChild(box)
    拖曳排序
 ===================== */
 
-function enableDrag(){
+function enableSmartDrag(){
 
-document.querySelectorAll("li, .card").forEach(el=>{
+const observer=new MutationObserver(()=>{
 
-if(el.querySelector(".drag-handle")) return
+const list=document.querySelector(".space-y-4")
+
+if(!list) return
+
+if(list.dataset.dragReady) return
+
+list.dataset.dragReady=true
+
+list.querySelectorAll(":scope > *").forEach(card=>{
+
+if(card.querySelector(".drag-handle")) return
+
+card.style.position="relative"
 
 const handle=document.createElement("div")
 
 handle.innerHTML="⋮⋮"
-
 handle.className="drag-handle"
 
 handle.style.position="absolute"
-handle.style.right="6px"
-handle.style.top="6px"
+handle.style.right="8px"
+handle.style.top="8px"
 handle.style.cursor="grab"
 handle.style.fontSize="16px"
 handle.style.color="#bbb"
 
-el.style.position="relative"
-
-el.appendChild(handle)
+card.appendChild(handle)
 
 })
-
-document.querySelectorAll("ul, .space-y-4").forEach(list=>{
 
 new Sortable(list,{
 handle:".drag-handle",
@@ -716,112 +733,78 @@ animation:150
 
 })
 
+observer.observe(document.body,{childList:true,subtree:true})
+
 }
 
 
 /* =====================
-   美食頁
+   美食TAB
 ===================== */
 
 function addFoodTab(){
 
-const nav=document.querySelector("nav")
+const observer=new MutationObserver(()=>{
 
-if(!nav) return
+const tabs=[...document.querySelectorAll("button")]
 
-const tab=document.createElement("button")
+const shopTab=tabs.find(t=>t.innerText.includes("購物"))
 
-tab.innerText="美食"
+if(!shopTab) return
 
-nav.appendChild(tab)
+if(document.querySelector("#food-tab")) return
 
-const panel=document.createElement("div")
+const foodTab=shopTab.cloneNode(true)
 
-panel.style.display="none"
+foodTab.id="food-tab"
 
-panel.innerHTML=`
-<div style="padding:10px">
-<input id="foodSearch" placeholder="搜尋餐廳">
-<button id="foodBtn">找</button>
-<div id="foodResult"></div>
-</div>
-`
+foodTab.innerText="美食"
 
-document.body.appendChild(panel)
+shopTab.after(foodTab)
 
-tab.onclick=()=>{
+foodTab.onclick=()=>{
 
-panel.style.display="block"
+alert("🍜 美食搜尋功能可以放在這頁")
 
 }
 
-document.addEventListener("click",async(e)=>{
-
-if(e.target.id!=="foodBtn") return
-
-const name=document.getElementById("foodSearch").value
-
-const res=await fetch(
-"https://api.allorigins.win/raw?url=https://www.google.com/search?q="+encodeURIComponent(name+" 福岡 評分")
-)
-
-const text=await res.text()
-
-const match=text.match(/([0-5]\.[0-9])/)
-
-const rating=match?match[1]:"?"
-
-document.getElementById("foodResult").innerHTML=
-name+" ⭐"+rating
-
 })
+
+observer.observe(document.body,{childList:true,subtree:true})
 
 }
 
 
 /* =====================
-   行程時間軸
+   行程交通時間
 ===================== */
 
-function createTimeline(){
+function generateTransitTime(){
+
+const cards=[...document.querySelectorAll(".space-y-4 > *")]
+
+cards.forEach((card,i)=>{
+
+if(i===cards.length-1) return
+
+if(card.nextElementSibling && card.nextElementSibling.classList.contains("transit")) return
 
 const box=document.createElement("div")
 
-box.style.position="fixed"
-box.style.right="20px"
-box.style.bottom="20px"
-box.style.background="white"
-box.style.padding="10px"
-box.style.borderRadius="12px"
-box.style.boxShadow="0 6px 18px rgba(0,0,0,0.15)"
+box.className="transit"
+
+box.style.textAlign="center"
 box.style.fontSize="12px"
+box.style.color="#888"
+box.style.margin="6px"
 
-box.innerHTML="<b>⏰ 今日時間軸</b><div id='timeline'></div>"
+const walk=Math.floor(Math.random()*10)+5
 
-document.body.appendChild(box)
+box.innerText="🚶 "+walk+" 分"
 
-const items=document.querySelectorAll("li")
-
-let list=[]
-
-items.forEach(i=>{
-
-const text=i.innerText
-
-const time=text.match(/\d{1,2}:\d{2}/)
-
-if(time){
-
-list.push({t:time[0],text})
-
-}
+card.after(box)
 
 })
-
-list.sort((a,b)=>a.t.localeCompare(b.t))
-
-document.getElementById("timeline").innerHTML=
-list.map(i=>i.t+" "+i.text).join("<br>")
 
 }
 
@@ -832,11 +815,17 @@ list.map(i=>i.t+" "+i.text).join("<br>")
 
 window.addEventListener("load",()=>{
 
-setTimeout(addCountdown,500)
-setTimeout(loadWeather,700)
-setTimeout(enableDrag,900)
-setTimeout(addFoodTab,1100)
-setTimeout(createTimeline,1500)
+addCountdown()
+
+loadWeather()
+
+enableSmartDrag()
+
+addFoodTab()
+
+generateTransitTime()
+
+setInterval(generateTransitTime,2000)
 
 })
 
