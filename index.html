@@ -595,7 +595,41 @@
 <script>
 (function(){
 
-/* ========= 7天福岡天氣 ========= */
+/* =====================
+   倒數
+===================== */
+
+function addCountdown(){
+
+const date="2026-05-05"
+
+const target=new Date(date)
+const today=new Date()
+
+const diff=Math.ceil((target-today)/86400000)
+
+const box=document.createElement("div")
+
+box.style.position="absolute"
+box.style.left="14px"
+box.style.top="14px"
+box.style.background="rgba(255,255,255,0.85)"
+box.style.padding="6px 10px"
+box.style.borderRadius="12px"
+box.style.fontSize="12px"
+
+box.innerHTML="✈️ "+diff+" days"
+
+const header=document.querySelector("header")
+
+if(header) header.appendChild(box)
+
+}
+
+
+/* =====================
+   7天福岡天氣
+===================== */
 
 async function loadWeather(){
 
@@ -607,19 +641,33 @@ const res=await fetch(
 
 const data=await res.json()
 
+const days=data.daily.time
 const temps=data.daily.temperature_2m_max
 
 const box=document.createElement("div")
 
 box.style.position="absolute"
-box.style.top="14px"
 box.style.right="14px"
+box.style.top="14px"
 box.style.background="rgba(255,255,255,0.85)"
-box.style.padding="6px 10px"
+box.style.padding="6px"
 box.style.borderRadius="12px"
 box.style.fontSize="11px"
 
-box.innerHTML=temps.slice(0,7).map(t=>"☀️"+Math.round(t)+"°").join("<br>")
+let html=""
+
+for(let i=0;i<7;i++){
+
+const d=new Date(days[i])
+
+const m=d.getMonth()+1
+const da=d.getDate()
+
+html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`
+
+}
+
+box.innerHTML=html
 
 const header=document.querySelector("header")
 
@@ -630,56 +678,50 @@ if(header) header.appendChild(box)
 }
 
 
-/* ========= 拖曳排序 ========= */
+/* =====================
+   拖曳排序
+===================== */
 
 function enableDrag(){
 
-const lists=document.querySelectorAll("ul, .space-y-4")
+document.querySelectorAll("li, .card").forEach(el=>{
 
-lists.forEach(list=>{
+if(el.querySelector(".drag-handle")) return
 
-if(list.dataset.dragready) return
+const handle=document.createElement("div")
 
-list.dataset.dragready=true
+handle.innerHTML="⋮⋮"
+
+handle.className="drag-handle"
+
+handle.style.position="absolute"
+handle.style.right="6px"
+handle.style.top="6px"
+handle.style.cursor="grab"
+handle.style.fontSize="16px"
+handle.style.color="#bbb"
+
+el.style.position="relative"
+
+el.appendChild(handle)
+
+})
+
+document.querySelectorAll("ul, .space-y-4").forEach(list=>{
 
 new Sortable(list,{
-animation:150,
-handle:".drag-handle"
+handle:".drag-handle",
+animation:150
 })
 
 })
 
 }
 
-function addHandles(){
 
-const cards=document.querySelectorAll("li, .space-y-4 > div")
-
-cards.forEach(card=>{
-
-if(card.querySelector(".drag-handle")) return
-
-const h=document.createElement("div")
-
-h.innerHTML="⋮⋮"
-
-h.className="drag-handle"
-
-h.style.position="absolute"
-h.style.right="6px"
-h.style.top="6px"
-h.style.cursor="grab"
-h.style.fontSize="16px"
-h.style.color="#bbb"
-
-card.appendChild(h)
-
-})
-
-}
-
-
-/* ========= 美食頁 ========= */
+/* =====================
+   美食頁
+===================== */
 
 function addFoodTab(){
 
@@ -698,9 +740,9 @@ const panel=document.createElement("div")
 panel.style.display="none"
 
 panel.innerHTML=`
-<div style="padding:12px">
-<input id="foodName" placeholder="搜尋餐廳">
-<button id="foodSearch">找</button>
+<div style="padding:10px">
+<input id="foodSearch" placeholder="搜尋餐廳">
+<button id="foodBtn">找</button>
 <div id="foodResult"></div>
 </div>
 `
@@ -715,9 +757,9 @@ panel.style.display="block"
 
 document.addEventListener("click",async(e)=>{
 
-if(e.target.id!=="foodSearch") return
+if(e.target.id!=="foodBtn") return
 
-const name=document.getElementById("foodName").value
+const name=document.getElementById("foodSearch").value
 
 const res=await fetch(
 "https://api.allorigins.win/raw?url=https://www.google.com/search?q="+encodeURIComponent(name+" 福岡 評分")
@@ -737,51 +779,64 @@ name+" ⭐"+rating
 }
 
 
-/* ========= 交通查詢 ========= */
+/* =====================
+   行程時間軸
+===================== */
 
-function createTransit(){
+function createTimeline(){
 
 const box=document.createElement("div")
 
 box.style.position="fixed"
-box.style.left="20px"
+box.style.right="20px"
 box.style.bottom="20px"
 box.style.background="white"
 box.style.padding="10px"
 box.style.borderRadius="12px"
-box.style.boxShadow="0 5px 15px rgba(0,0,0,0.15)"
+box.style.boxShadow="0 6px 18px rgba(0,0,0,0.15)"
 box.style.fontSize="12px"
 
-box.innerHTML=`
-<div>🚆 交通</div>
-<input id="fromS" placeholder="起點" style="width:60px">
-<input id="toS" placeholder="終點" style="width:60px">
-<button id="goS">查</button>
-<div id="route"></div>
-`
+box.innerHTML="<b>⏰ 今日時間軸</b><div id='timeline'></div>"
 
 document.body.appendChild(box)
 
-document.getElementById("goS").onclick=()=>{
+const items=document.querySelectorAll("li")
 
-const m=Math.floor(Math.random()*8)+5
+let list=[]
 
-document.getElementById("route").innerText="🚆 約 "+m+" 分"
+items.forEach(i=>{
+
+const text=i.innerText
+
+const time=text.match(/\d{1,2}:\d{2}/)
+
+if(time){
+
+list.push({t:time[0],text})
 
 }
 
+})
+
+list.sort((a,b)=>a.t.localeCompare(b.t))
+
+document.getElementById("timeline").innerHTML=
+list.map(i=>i.t+" "+i.text).join("<br>")
+
 }
 
 
-/* ========= 啟動 ========= */
+/* =====================
+   啟動
+===================== */
 
 window.addEventListener("load",()=>{
 
-setTimeout(loadWeather,800)
-setTimeout(addHandles,1000)
-setTimeout(enableDrag,1200)
-setTimeout(addFoodTab,1400)
-setTimeout(createTransit,1600)
+setTimeout(addCountdown,500)
+setTimeout(loadWeather,700)
+setTimeout(enableDrag,900)
+setTimeout(addFoodTab,1100)
+setTimeout(createTimeline,1500)
 
 })
 
