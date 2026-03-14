@@ -591,107 +591,169 @@
     }).mount('#app');
 </script>
 
-    // ------------------------
-// 拖曳排序 (長按 10 秒 + 點點)
-// ------------------------
-const cardsContainer = document.getElementById('itinerary-cards');
-let draggedCard = null;
-let longPressTimer = null;
+  <div id="travel-app">
+  <!-- 倒數時間 -->
+  <div id="countdown">
+    <h3>距離出發還有 <span id="days-left">0</span> 天</h3>
+  </div>
 
-cardsContainer.addEventListener('mousedown', e => {
-  if (!e.target.classList.contains('drag-handle')) return;
-  longPressTimer = setTimeout(() => {
-    draggedCard = e.target.parentElement;
-    draggedCard.style.opacity = 0.5;
-  }, 10000); // 長按 10 秒才能移動
-});
+  <!-- 福岡 7天天氣 -->
+  <div id="weather-7days">
+    <h3>福岡 7天天氣</h3>
+    <div id="weather-list"></div>
+  </div>
 
-cardsContainer.addEventListener('mouseup', e => {
-  clearTimeout(longPressTimer);
-  if (draggedCard) draggedCard.style.opacity = 1;
-});
+  <!-- 行程 -->
+  <div id="schedule">
+    <h3>每日行程</h3>
+    <div id="schedule-cards"></div>
+    <button id="add-card">新增行程</button>
+  </div>
 
-cardsContainer.addEventListener('dragstart', e => {
-  draggedCard = e.target;
-  e.dataTransfer.effectAllowed = 'move';
-});
+  <!-- Tab 按鈕 -->
+  <div id="tabs">
+    <button class="tab-btn active" data-tab="shopping">購物</button>
+    <button class="tab-btn" data-tab="food">美食</button>
+  </div>
+  <!-- Tab 內容 -->
+  <div id="tab-content">
+    <div id="shopping" class="tab-pane active">
+      <p>這裡是購物內容</p>
+    </div>
+    <div id="food" class="tab-pane">
+      <ul id="ramen-list"></ul>
+    </div>
+  </div>
+</div>
 
-cardsContainer.addEventListener('dragover', e => {
-  e.preventDefault();
-  const afterElement = getDragAfterElement(cardsContainer, e.clientY);
-  if (afterElement == null) {
-    cardsContainer.appendChild(draggedCard);
-  } else {
-    cardsContainer.insertBefore(draggedCard, afterElement);
+<style>
+  #schedule-cards { display: flex; flex-direction: column; gap: 10px; }
+  .card { padding: 10px; border: 1px solid #ccc; display: flex; align-items: center; gap: 10px; background: #fff; }
+  .drag-handle { cursor: grab; margin-right: 10px; }
+  .tab-btn.active { font-weight: bold; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+  .traffic-block { font-size: 0.9em; color: #555; margin-left: 20px; }
+</style>
+
+<script>
+  // ======= 倒數天數 =======
+  const countdownDate = new Date("2025-11-30"); // 旅行日期
+  function updateCountdown() {
+    const now = new Date();
+    const diff = countdownDate - now;
+    const days = Math.ceil(diff / (1000*60*60*24));
+    document.getElementById("days-left").textContent = days;
   }
-});
+  updateCountdown();
+  setInterval(updateCountdown, 3600*1000);
 
-function getDragAfterElement(container, y) {
-  const draggableElements = [...container.querySelectorAll('.card:not(.dragging)')];
-  return draggableElements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if (offset < 0 && offset > closest.offset) {
-      return { offset: offset, element: child };
-    } else {
-      return closest;
-    }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
-
-// ------------------------
-// 美食 Tab (按鈕 + 動態生成拉麵列表)
-// ------------------------
-const tabButtons = document.querySelectorAll('.tab-button');
-const tabContents = document.querySelectorAll('.tab-content');
-
-tabButtons.forEach(button => {
-  button.addEventListener('click', () => {
-    tabButtons.forEach(b => b.classList.remove('active'));
-    button.classList.add('active');
-    tabContents.forEach(c => c.style.display = c.id === button.dataset.tab ? 'block' : 'none');
-
-    if(button.dataset.tab === 'food') {
-      generateRamenList();
-    }
+  // ======= 福岡 7天天氣 (模擬) =======
+  const weatherList = document.getElementById("weather-list");
+  const dummyWeather = [
+    {date:"3/14", temp:"16°C", icon:"☀️"},
+    {date:"3/15", temp:"18°C", icon:"⛅"},
+    {date:"3/16", temp:"17°C", icon:"🌧️"},
+    {date:"3/17", temp:"15°C", icon:"🌤️"},
+    {date:"3/18", temp:"16°C", icon:"☁️"},
+    {date:"3/19", temp:"17°C", icon:"🌦️"},
+    {date:"3/20", temp:"16°C", icon:"☀️"}
+  ];
+  dummyWeather.forEach(w=>{
+    const el = document.createElement("div");
+    el.textContent = `${w.date} ${w.icon} ${w.temp}`;
+    weatherList.appendChild(el);
   });
-});
 
-function generateRamenList() {
-  const list = document.getElementById('ramen-list');
-  list.innerHTML = '';
-  const sampleRamen = ['一蘭', '博多一幸舍', '豚骨拉麵田中', '拉麵山頭火'];
-  sampleRamen.forEach(name => {
-    const li = document.createElement('li');
+  // ======= Tab 切換 =======
+  const tabs = document.querySelectorAll(".tab-btn");
+  const panes = document.querySelectorAll(".tab-pane");
+  tabs.forEach(tab=>{
+    tab.addEventListener("click", ()=>{
+      tabs.forEach(t=>t.classList.remove("active"));
+      tab.classList.add("active");
+      panes.forEach(p=>p.classList.remove("active"));
+      document.getElementById(tab.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ======= 拉麵列表 (模擬) =======
+  const ramenList = document.getElementById("ramen-list");
+  const dummyRamen = ["一蘭拉麵", "一風堂", "博多天神", "豚骨拉麵本舖"];
+  dummyRamen.forEach(name=>{
+    const li = document.createElement("li");
     li.textContent = name;
-    list.appendChild(li);
+    ramenList.appendChild(li);
   });
-}
 
-// ------------------------
-// 行程交通時間 (固定區塊 + 選擇交通方式)
-// ------------------------
-const transportTimes = {
-  walk: 10,
-  train: 5
-};
+  // ======= 行程卡 & 拖曳 =======
+  const scheduleCards = document.getElementById("schedule-cards");
+  let dragSrcEl = null;
+  function createCard(title="新行程"){
+    const card = document.createElement("div");
+    card.classList.add("card");
+    card.draggable = true;
 
-cardsContainer.addEventListener('change', e => {
-  if(e.target.classList.contains('transport')) {
-    updateTransportTimes();
+    // 拖曳點
+    const handle = document.createElement("span");
+    handle.textContent = "⋮⋮";
+    handle.classList.add("drag-handle");
+    card.appendChild(handle);
+
+    // 行程標題
+    const txt = document.createElement("span");
+    txt.textContent = title;
+    card.appendChild(txt);
+
+    // 交通方式
+    const select = document.createElement("select");
+    ["步行","大眾運輸"].forEach(v=>{
+      const opt = document.createElement("option");
+      opt.value=v; opt.textContent=v;
+      select.appendChild(opt);
+    });
+    card.appendChild(select);
+
+    // 事件：長按 10 秒才啟動拖曳
+    let longPressTimer = null;
+    handle.addEventListener("mousedown", (e)=>{
+      longPressTimer = setTimeout(()=>{ card.draggable=true; }, 10000);
+    });
+    handle.addEventListener("mouseup", ()=>{ clearTimeout(longPressTimer); card.draggable=false; });
+    card.draggable = false;
+
+    // 拖曳事件
+    card.addEventListener("dragstart", (e)=>{ dragSrcEl = card; });
+    card.addEventListener("dragover", (e)=>{ e.preventDefault(); });
+    card.addEventListener("drop", (e)=>{
+      e.preventDefault();
+      if(dragSrcEl && dragSrcEl!==card){
+        const parent = dragSrcEl.parentNode;
+        parent.insertBefore(dragSrcEl, card.nextSibling);
+        updateTrafficBlocks();
+      }
+    });
+
+    scheduleCards.appendChild(card);
+    updateTrafficBlocks();
   }
-});
 
-function updateTransportTimes() {
-  const cards = cardsContainer.querySelectorAll('.card');
-  cards.forEach((card, idx) => {
-    const transport = card.querySelector('.transport').value;
-    const nextTimeDiv = card.nextElementSibling;
-    if(nextTimeDiv && nextTimeDiv.classList.contains('transport-time')) {
-      nextTimeDiv.textContent = `${transport==='walk'?'步行':'大眾運輸'}: ${transportTimes[transport]} 分鐘`;
+  document.getElementById("add-card").addEventListener("click", ()=>{ createCard(); });
+
+  // ======= 行程交通時間 =======
+  function updateTrafficBlocks(){
+    const cards = scheduleCards.querySelectorAll(".card");
+    // 先移除舊交通區塊
+    scheduleCards.querySelectorAll(".traffic-block").forEach(e=>e.remove());
+    for(let i=0;i<cards.length-1;i++){
+      const block = document.createElement("div");
+      block.classList.add("traffic-block");
+      const mode = cards[i].querySelector("select").value;
+      const t = (mode==="步行") ? "15 分鐘" : "5 分鐘";
+      block.textContent = `交通時間 (${mode})：${t}`;
+      scheduleCards.insertBefore(block, cards[i+1]);
     }
-  });
-}
-updateTransportTimes();
+  }
+</script>  
 </body>
 </html>
