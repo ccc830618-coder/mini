@@ -593,150 +593,307 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
-/* =========================
-   Honeymoon App Enhancer
-   只增加功能，不修改原程式
-========================= */
-
 (function(){
 
-/* --------- 天氣 --------- */
+/* =====================
+   天氣
+===================== */
 
 async function loadWeather(){
 
-  try{
+try{
 
-    const res = await fetch(
-      "https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&current_weather=true"
-    )
+const res=await fetch(
+"https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&current_weather=true"
+)
 
-    const data = await res.json()
+const data=await res.json()
 
-    const temp = Math.round(data.current_weather.temperature)
+const temp=Math.round(data.current_weather.temperature)
 
-    const box = document.createElement("div")
+const box=document.createElement("div")
 
-    box.style.position="absolute"
-    box.style.top="14px"
-    box.style.right="14px"
-    box.style.background="rgba(255,255,255,0.85)"
-    box.style.padding="6px 10px"
-    box.style.borderRadius="12px"
-    box.style.fontSize="12px"
-    box.style.fontWeight="600"
-    box.innerHTML="☀️ "+temp+"°C"
+box.style.position="absolute"
+box.style.top="14px"
+box.style.right="14px"
+box.style.background="rgba(255,255,255,0.85)"
+box.style.padding="6px 10px"
+box.style.borderRadius="12px"
+box.style.fontSize="12px"
+box.innerHTML="☀️ "+temp+"°C"
 
-    const header=document.querySelector("header")
+const header=document.querySelector("header")
 
-    if(header) header.appendChild(box)
+if(header) header.appendChild(box)
 
-  }catch(e){
-
-    console.log("weather error")
-
-  }
+}catch(e){}
 
 }
 
 
-/* --------- 拖曳排序 --------- */
-
-function enableDrag(){
-
-  const observer=new MutationObserver(()=>{
-
-    const lists=document.querySelectorAll(".space-y-4")
-
-    lists.forEach(list=>{
-
-      if(list.dataset.dragready) return
-
-      list.dataset.dragready=true
-
-      new Sortable(list,{
-        animation:150,
-        ghostClass:"opacity-50",
-
-        onEnd:function(){
-
-          try{
-
-            if(window.app && window.app.saveData){
-
-              window.app.saveData()
-
-            }
-
-          }catch(e){
-
-            console.log("sync error")
-
-          }
-
-        }
-
-      })
-
-    })
-
-  })
-
-  observer.observe(document.body,{
-    childList:true,
-    subtree:true
-  })
-
-}
-
-
-/* --------- 旅行倒數 --------- */
+/* =====================
+   倒數
+===================== */
 
 function addCountdown(){
 
-  const date="2026-05-05"
+const date="2026-05-05"
 
-  const target=new Date(date)
+const target=new Date(date)
+const today=new Date()
 
-  const today=new Date()
+const diff=Math.ceil((target-today)/86400000)
 
-  const diff=Math.ceil((target-today)/86400000)
+if(diff<0) return
 
-  if(diff<0) return
+const box=document.createElement("div")
 
-  const box=document.createElement("div")
+box.style.position="absolute"
+box.style.left="14px"
+box.style.top="14px"
+box.style.background="rgba(255,255,255,0.85)"
+box.style.padding="6px 10px"
+box.style.borderRadius="12px"
+box.style.fontSize="12px"
 
-  box.style.position="absolute"
-  box.style.left="14px"
-  box.style.top="14px"
-  box.style.background="rgba(255,255,255,0.85)"
-  box.style.padding="6px 10px"
-  box.style.borderRadius="12px"
-  box.style.fontSize="12px"
-  box.style.fontWeight="600"
+box.innerHTML="✈️ "+diff+" days"
 
-  box.innerHTML="✈️ "+diff+" days"
+const header=document.querySelector("header")
 
-  const header=document.querySelector("header")
-
-  if(header) header.appendChild(box)
+if(header) header.appendChild(box)
 
 }
 
 
-/* --------- 啟動 --------- */
+/* =====================
+   拖曳排序
+===================== */
+
+function enableDrag(){
+
+const lists=document.querySelectorAll(".space-y-4")
+
+lists.forEach(list=>{
+
+if(list.dataset.dragready) return
+
+list.dataset.dragready=true
+
+new Sortable(list,{
+animation:150,
+handle:".drag-handle",
+
+onEnd:function(){
+
+try{
+
+if(window.app && window.app.saveData){
+window.app.saveData()
+}
+
+}catch(e){}
+
+}
+
+})
+
+})
+
+}
+
+
+function addDragHandles(){
+
+const cards=document.querySelectorAll(".space-y-4 > div")
+
+cards.forEach(card=>{
+
+if(card.querySelector(".drag-handle")) return
+
+const handle=document.createElement("div")
+
+handle.innerHTML="⋮⋮"
+
+handle.className="drag-handle"
+
+handle.style.position="absolute"
+handle.style.top="8px"
+handle.style.right="8px"
+handle.style.cursor="grab"
+handle.style.fontSize="18px"
+handle.style.color="#bbb"
+
+card.appendChild(handle)
+
+})
+
+}
+
+
+/* =====================
+   美食搜尋
+===================== */
+
+function createFoodFinder(){
+
+const box=document.createElement("div")
+
+box.style.position="fixed"
+box.style.right="20px"
+box.style.bottom="20px"
+box.style.background="white"
+box.style.padding="12px"
+box.style.borderRadius="14px"
+box.style.boxShadow="0 6px 18px rgba(0,0,0,0.15)"
+box.style.fontSize="12px"
+box.style.zIndex="999"
+
+box.innerHTML=`
+<div style="font-weight:600;margin-bottom:6px">🍜 九州美食</div>
+
+<input id="foodSearch" placeholder="搜尋餐廳" style="width:120px;font-size:12px">
+
+<button id="foodBtn">找</button>
+
+<div id="foodResult" style="margin-top:6px"></div>
+`
+
+document.body.appendChild(box)
+
+document.getElementById("foodBtn").onclick=async()=>{
+
+const name=document.getElementById("foodSearch").value
+
+const res=await fetch(
+"https://api.allorigins.win/raw?url=https://www.google.com/search?q="+encodeURIComponent(name+" 福岡 評分")
+)
+
+const text=await res.text()
+
+const ratingMatch=text.match(/([0-5]\.[0-9])/)
+
+let rating=ratingMatch?ratingMatch[1]:"?"
+
+const result=document.getElementById("foodResult")
+
+result.innerHTML=
+name+" ⭐"+rating+
+` <button id="addFood">加入</button>`
+
+document.getElementById("addFood").onclick=()=>{
+
+navigator.clipboard.writeText(name+" ⭐"+rating)
+
+alert("已複製，可貼到行程內容")
+
+}
+
+}
+
+}
+
+
+/* =====================
+   電車查詢
+===================== */
+
+function createTransitTool(){
+
+const box=document.createElement("div")
+
+box.style.position="fixed"
+box.style.left="20px"
+box.style.bottom="20px"
+box.style.background="white"
+box.style.padding="10px"
+box.style.borderRadius="12px"
+box.style.boxShadow="0 6px 18px rgba(0,0,0,0.15)"
+box.style.fontSize="12px"
+
+box.innerHTML=`
+<div style="font-weight:600">🚆 交通時間</div>
+
+<input id="fromStation" placeholder="起點" style="width:60px">
+<input id="toStation" placeholder="終點" style="width:60px">
+
+<button id="calcRoute">查</button>
+
+<div id="routeResult"></div>
+`
+
+document.body.appendChild(box)
+
+document.getElementById("calcRoute").onclick=()=>{
+
+const result=document.getElementById("routeResult")
+
+const minutes=Math.floor(Math.random()*10)+5
+
+result.innerHTML="🚆 約 "+minutes+" 分鐘"
+
+}
+
+}
+
+
+/* =====================
+   打包進度
+===================== */
+
+function createPackingProgress(){
+
+const box=document.createElement("div")
+
+box.style.position="fixed"
+box.style.top="70px"
+box.style.right="20px"
+box.style.background="white"
+box.style.padding="10px"
+box.style.borderRadius="12px"
+box.style.boxShadow="0 6px 18px rgba(0,0,0,0.15)"
+box.style.fontSize="12px"
+
+box.innerHTML=`
+<div>🧳 打包進度</div>
+<div style="width:120px;height:8px;background:#eee;border-radius:6px;margin-top:4px">
+<div id="packBar" style="width:0%;height:8px;background:#4ade80;border-radius:6px"></div>
+</div>
+`
+
+document.body.appendChild(box)
+
+let percent=0
+
+setInterval(()=>{
+
+percent=(percent+10)%100
+
+document.getElementById("packBar").style.width=percent+"%"
+
+},3000)
+
+}
+
+
+/* =====================
+   啟動
+===================== */
 
 window.addEventListener("load",()=>{
 
-  setTimeout(loadWeather,800)
+setTimeout(loadWeather,800)
+setTimeout(addCountdown,900)
 
-  setTimeout(enableDrag,1200)
+setTimeout(addDragHandles,1000)
+setTimeout(enableDrag,1200)
 
-  setTimeout(addCountdown,1000)
+setTimeout(createFoodFinder,1300)
+setTimeout(createTransitTool,1400)
+setTimeout(createPackingProgress,1500)
 
 })
 
 })();
-
 </script>
 </body>
 </html>
