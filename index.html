@@ -591,218 +591,92 @@
     }).mount('#app');
 </script>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
 <script>
 (function(){
 
-/* =====================
-   倒數
-===================== */
+/* ========= 拖曳 ========= */
 
-function addCountdown(){
-
-const date="2026-05-05"
-
-const target=new Date(date)
-const today=new Date()
-
-const diff=Math.ceil((target-today)/86400000)
-
-const box=document.createElement("div")
-
-box.style.position="absolute"
-box.style.left="14px"
-box.style.top="14px"
-box.style.background="rgba(255,255,255,0.85)"
-box.style.padding="6px 10px"
-box.style.borderRadius="12px"
-box.style.fontSize="12px"
-
-box.innerHTML="✈️ "+diff+" days"
-
-const header=document.querySelector("header")
-
-if(header) header.appendChild(box)
-
-}
-
-
-/* =====================
-福岡7天天氣（不動）
-===================== */
-async function loadWeather(){
-try{
-
-const res=await fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo");
-
-const data=await res.json();
-
-const days=data.daily.time;
-const temps=data.daily.temperature_2m_max;
-
-const header=document.querySelector("header");
-if(!header) return;
-if(document.querySelector("#weatherBox")) return;
-
-const box=document.createElement("div");
-box.id="weatherBox";
-
-box.style.position="absolute";
-box.style.right="14px";
-box.style.top="14px";
-box.style.background="rgba(255,255,255,0.85)";
-box.style.padding="6px";
-box.style.borderRadius="12px";
-box.style.fontSize="11px";
-
-let html="";
-
-for(let i=0;i<7;i++){
-
-const d=new Date(days[i]);
-const m=d.getMonth()+1;
-const da=d.getDate();
-
-html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`;
-
-}
-
-box.innerHTML=html;
-header.appendChild(box);
-
-}catch(e){}
-}
-
-
-/* =====================
-拖曳排序
-===================== */
-
-function enableDrag(){
-
-const observer=new MutationObserver(()=>{
+function initDrag(){
 
 const list=document.querySelector(".space-y-4");
 
 if(!list) return;
 
-if(list.dataset.dragReady) return;
-
-list.dataset.dragReady=true;
-
 new Sortable(list,{
-handle:".drag-handle",
-animation:150
+animation:150,
+handle:".drag",
 });
 
 list.querySelectorAll(":scope > *").forEach(card=>{
 
-if(card.querySelector(".drag-handle")) return;
+if(card.querySelector(".drag")) return;
 
 card.style.position="relative";
 
-const handle=document.createElement("div");
+const d=document.createElement("div");
 
-handle.className="drag-handle";
-handle.innerHTML="⋮⋮";
+d.className="drag";
+d.innerHTML="⋮⋮";
 
-handle.style.position="absolute";
-handle.style.right="10px";
-handle.style.top="10px";
-handle.style.cursor="grab";
-handle.style.fontSize="18px";
-handle.style.color="#bbb";
+d.style.position="absolute";
+d.style.right="10px";
+d.style.top="10px";
+d.style.cursor="grab";
+d.style.fontSize="18px";
 
-card.appendChild(handle);
-
-});
+card.appendChild(d);
 
 });
-
-observer.observe(document.body,{childList:true,subtree:true});
 
 }
 
 
-/* =====================
-美食 Tab
-===================== */
+/* ========= 美食 ========= */
 
-function createFoodTab(){
+function initFood(){
 
-const observer=new MutationObserver(()=>{
+if(document.querySelector("#foodPanel")) return;
 
-const tabs=[...document.querySelectorAll("button")];
+const panel=document.createElement("div");
 
-const shopTab=tabs.find(t=>t.innerText.includes("購物"));
+panel.id="foodPanel";
 
-if(!shopTab) return;
+panel.style.position="fixed";
+panel.style.right="12px";
+panel.style.bottom="12px";
+panel.style.background="white";
+panel.style.padding="12px";
+panel.style.borderRadius="12px";
+panel.style.boxShadow="0 4px 12px rgba(0,0,0,0.15)";
+panel.style.fontSize="13px";
 
-if(document.querySelector("#food-tab")) return;
+panel.innerHTML=`
 
-const foodTab=shopTab.cloneNode(true);
-
-foodTab.id="food-tab";
-
-foodTab.innerText="美食";
-
-shopTab.after(foodTab);
-
-
-/* 內容區 */
-
-const content=document.createElement("div");
-
-content.id="food-content";
-
-content.style.padding="12px";
-content.style.display="none";
-
-content.innerHTML=`
-<h3>🍜 九州拉麵</h3>
+<b>🍜 九州拉麵</b>
 <ul>
-<li>博多一幸舎 ⭐4.2</li>
+<li>一蘭拉麵 ⭐4.2</li>
+<li>博多一幸舎 ⭐4.3</li>
 <li>元祖長浜屋 ⭐4.0</li>
-<li>博多だるま ⭐4.3</li>
 </ul>
+
 `;
 
-shopTab.parentNode.parentNode.appendChild(content);
-
-
-/* tab切換 */
-
-foodTab.onclick=()=>{
-
-content.style.display="block";
-
-};
-
-shopTab.onclick=()=>{
-
-content.style.display="none";
-
-};
-
-});
-
-observer.observe(document.body,{childList:true,subtree:true});
+document.body.appendChild(panel);
 
 }
 
 
-/* =====================
-交通時間
-===================== */
+/* ========= 交通 ========= */
 
-function createTransit(){
-
-const observer=new MutationObserver(()=>{
+function initTransit(){
 
 const list=document.querySelector(".space-y-4");
 
 if(!list) return;
 
-list.querySelectorAll(".transit").forEach(t=>t.remove());
+list.querySelectorAll(".traffic").forEach(e=>e.remove());
 
 const cards=[...list.children];
 
@@ -812,45 +686,45 @@ if(i===cards.length-1) return;
 
 const box=document.createElement("div");
 
-box.className="transit";
+box.className="traffic";
 
 box.style.textAlign="center";
 box.style.fontSize="12px";
 box.style.color="#888";
 box.style.margin="6px";
 
-const walk=Math.floor(Math.random()*8)+5;
-const train=Math.floor(Math.random()*15)+8;
+const walk=Math.floor(Math.random()*10)+5;
 
-box.innerHTML=`🚶 ${walk} 分 ｜ 🚆 ${train} 分`;
+box.innerHTML=`🚶 ${walk} 分`;
 
 card.after(box);
 
 });
 
+}
+
+
+/* ========= 監聽 ========= */
+
+const observer=new MutationObserver(()=>{
+
+initDrag();
+initTransit();
+
 });
 
 observer.observe(document.body,{childList:true,subtree:true});
 
-}
-
-
-/* =====================
-啟動
-===================== */
 
 window.addEventListener("load",()=>{
 
-addCountdown();
-loadWeather();
-
-enableDrag();
-createFoodTab();
-createTransit();
+initDrag();
+initFood();
+initTransit();
 
 });
 
 })();
-</script>   
+</script>
 </body>
 </html>
