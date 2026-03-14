@@ -596,11 +596,10 @@
 <script>
 window.addEventListener("load", function(){
 
-  /* =====================
-     ✈️ 旅行倒數
-  ===================== */
+  /* ✈️ 旅行倒數（動態更新到 2026/05/05） */
   const target = new Date("2026-05-05T00:00:00+08:00");
   const header = document.querySelector("header");
+
   if(header){
     const box = document.createElement("div");
     box.id = "countdownBox";
@@ -615,16 +614,15 @@ window.addEventListener("load", function(){
 
     function updateCountdown(){
       const today = new Date();
-      const diff = Math.ceil((target - today)/86400000);
+      const diff = Math.ceil((target - today) / 86400000);
       box.innerHTML = "✈️ " + diff + " days";
     }
+
     updateCountdown();
     setInterval(updateCountdown, 60000);
   }
 
-  /* =====================
-     🌤️ 福岡 7天天氣
-  ===================== */
+  /* 🌤️ 福岡7天天氣 */
   fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo")
     .then(res=>res.json())
     .then(data=>{
@@ -650,56 +648,12 @@ window.addEventListener("load", function(){
       header.appendChild(box);
     });
 
-  /* =====================
-     📋 行程拖曳
-  ===================== */
+  /* 📋 行程拖曳 */
   const list=document.querySelector(".space-y-4");
   if(list){
     new Sortable(list,{
       animation:150
     });
-  }
-
-  /* =====================
-     🚶/🚌 行程交通時間
-  ===================== */
-  function updateTransitTimes(){
-    if(!list) return;
-    // 移除舊交通區塊
-    list.querySelectorAll(".transit").forEach(t=>t.remove());
-
-    const cards=[...list.children];
-    cards.forEach((card,i)=>{
-      if(i===cards.length-1) return;
-      const transitDiv=document.createElement("div");
-      transitDiv.className="transit";
-      transitDiv.style.textAlign="center";
-      transitDiv.style.fontSize="12px";
-      transitDiv.style.color="#888";
-      transitDiv.style.margin="4px 0";
-
-      // 讀取交通方式 (預設步行)
-      const mode = card.dataset.transport || "walk";
-      let time = mode==="walk"?10:15; // 模擬時間
-      transitDiv.innerText = mode==="walk"?`🚶 ${time} 分`:`🚌 ${time} 分`;
-
-      card.after(transitDiv);
-    });
-  }
-
-  // 初始化
-  updateTransitTimes();
-
-  // 偵測新增行程或拖曳結束刷新
-  if(list){
-    list.addEventListener("sortupdate", updateTransitTimes);
-    // 假設你有新增行程的按鈕
-    const addBtn = document.querySelector("#add-card");
-    if(addBtn){
-      addBtn.addEventListener("click", ()=>{
-        setTimeout(updateTransitTimes,100); // 等 DOM 生成
-      });
-    }
   }
 
 });
