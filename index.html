@@ -589,142 +589,217 @@
             }
         }
     }).mount('#app');
-</script>
-
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-
 <script>
 (function(){
 
-/* ========= 拖曳 ========= */
+/* =====================
+✈️ 旅行倒數
+===================== */
 
-function initDrag(){
+function addCountdown(){
 
-const list=document.querySelector(".space-y-4");
+const target=new Date("2025-11-30T00:00:00+08:00");
 
-if(!list) return;
+const today=new Date();
 
-new Sortable(list,{
-animation:150,
-handle:".drag",
-});
+const diff=Math.ceil((target-today)/86400000);
 
-list.querySelectorAll(":scope > *").forEach(card=>{
+const header=document.querySelector("header");
 
-if(card.querySelector(".drag")) return;
+if(!header) return;
 
-card.style.position="relative";
-
-const d=document.createElement("div");
-
-d.className="drag";
-d.innerHTML="⋮⋮";
-
-d.style.position="absolute";
-d.style.right="10px";
-d.style.top="10px";
-d.style.cursor="grab";
-d.style.fontSize="18px";
-
-card.appendChild(d);
-
-});
-
-}
-
-
-/* ========= 美食 ========= */
-
-function initFood(){
-
-if(document.querySelector("#foodPanel")) return;
-
-const panel=document.createElement("div");
-
-panel.id="foodPanel";
-
-panel.style.position="fixed";
-panel.style.right="12px";
-panel.style.bottom="12px";
-panel.style.background="white";
-panel.style.padding="12px";
-panel.style.borderRadius="12px";
-panel.style.boxShadow="0 4px 12px rgba(0,0,0,0.15)";
-panel.style.fontSize="13px";
-
-panel.innerHTML=`
-
-<b>🍜 九州拉麵</b>
-<ul>
-<li>一蘭拉麵 ⭐4.2</li>
-<li>博多一幸舎 ⭐4.3</li>
-<li>元祖長浜屋 ⭐4.0</li>
-</ul>
-
-`;
-
-document.body.appendChild(panel);
-
-}
-
-
-/* ========= 交通 ========= */
-
-function initTransit(){
-
-const list=document.querySelector(".space-y-4");
-
-if(!list) return;
-
-list.querySelectorAll(".traffic").forEach(e=>e.remove());
-
-const cards=[...list.children];
-
-cards.forEach((card,i)=>{
-
-if(i===cards.length-1) return;
+if(document.querySelector("#countdownBox")) return;
 
 const box=document.createElement("div");
 
-box.className="traffic";
+box.id="countdownBox";
 
-box.style.textAlign="center";
+box.style.position="absolute";
+box.style.left="14px";
+box.style.top="14px";
+box.style.background="rgba(255,255,255,0.9)";
+box.style.padding="6px 10px";
+box.style.borderRadius="12px";
 box.style.fontSize="12px";
-box.style.color="#888";
-box.style.margin="6px";
 
-const walk=Math.floor(Math.random()*10)+5;
+box.innerHTML="✈️ "+diff+" days";
 
-box.innerHTML=`🚶 ${walk} 分`;
-
-card.after(box);
-
-});
+header.appendChild(box);
 
 }
 
 
-/* ========= 監聽 ========= */
+
+/* =====================
+🌤️ 福岡7天天氣
+===================== */
+
+async function loadWeather(){
+
+try{
+
+const res=await fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo");
+
+const data=await res.json();
+
+const days=data.daily.time;
+
+const temps=data.daily.temperature_2m_max;
+
+const header=document.querySelector("header");
+
+if(!header) return;
+
+if(document.querySelector("#weatherBox")) return;
+
+const box=document.createElement("div");
+
+box.id="weatherBox";
+
+box.style.position="absolute";
+box.style.right="14px";
+box.style.top="14px";
+box.style.background="rgba(255,255,255,0.9)";
+box.style.padding="6px";
+box.style.borderRadius="12px";
+box.style.fontSize="11px";
+
+let html="";
+
+for(let i=0;i<7;i++){
+
+const d=new Date(days[i]);
+
+const m=d.getMonth()+1;
+
+const da=d.getDate();
+
+html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`;
+
+}
+
+box.innerHTML=html;
+
+header.appendChild(box);
+
+}catch(e){}
+
+}
+
+
+
+/* =====================
+📍 行程點擊開地圖
+===================== */
+
+function enableMapLinks(){
 
 const observer=new MutationObserver(()=>{
 
-initDrag();
-initTransit();
+const cards=[...document.querySelectorAll(".space-y-4 > *")];
+
+cards.forEach(card=>{
+
+if(card.dataset.mapReady) return;
+
+card.dataset.mapReady=true;
+
+card.style.cursor="pointer";
+
+card.addEventListener("click",()=>{
+
+const text=card.innerText.split("\n")[0];
+
+const url="https://www.google.com/maps/search/"+encodeURIComponent(text);
+
+window.open(url);
+
+});
+
+});
 
 });
 
 observer.observe(document.body,{childList:true,subtree:true});
 
+}
+
+
+
+/* =====================
+🍜 九州拉麵搜尋
+===================== */
+
+function addRamenSearch(){
+
+if(document.querySelector("#ramenSearch")) return;
+
+const box=document.createElement("div");
+
+box.id="ramenSearch";
+
+box.style.position="fixed";
+
+box.style.right="12px";
+
+box.style.bottom="12px";
+
+box.style.background="white";
+
+box.style.padding="10px";
+
+box.style.borderRadius="12px";
+
+box.style.boxShadow="0 4px 12px rgba(0,0,0,0.15)";
+
+box.style.fontSize="13px";
+
+box.innerHTML=`
+
+<div style="margin-bottom:6px">🍜 九州拉麵搜尋</div>
+
+<input id="ramenInput" placeholder="輸入地點"
+style="border:1px solid #ddd;border-radius:6px;padding:4px;width:120px">
+
+<button id="ramenBtn"
+style="margin-left:4px">查詢</button>
+
+`;
+
+document.body.appendChild(box);
+
+document.getElementById("ramenBtn").onclick=()=>{
+
+const v=document.getElementById("ramenInput").value||"博多";
+
+const url="https://www.google.com/maps/search/"+encodeURIComponent(v+" 拉麵");
+
+window.open(url);
+
+};
+
+}
+
+
+
+/* =====================
+🚀 啟動
+===================== */
 
 window.addEventListener("load",()=>{
 
-initDrag();
-initFood();
-initTransit();
+addCountdown();
+
+loadWeather();
+
+enableMapLinks();
+
+addRamenSearch();
 
 });
 
 })();
 </script>
+
 </body>
 </html>
