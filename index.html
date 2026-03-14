@@ -591,12 +591,12 @@
     }).mount('#app');
 </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
 window.addEventListener("load", function(){
 
-  /* ✈️ 旅行倒數（到 2026/05/05） */
+  /* ✈️ 旅行倒數（動態更新到 2026/05/05） */
   const target = new Date("2026-05-05T00:00:00+08:00");
   const header = document.querySelector("header");
 
@@ -619,6 +619,7 @@ window.addEventListener("load", function(){
     }
 
     updateCountdown();
+    // 每分鐘更新一次（確保天數正確）
     setInterval(updateCountdown, 60000);
   }
 
@@ -648,32 +649,15 @@ window.addEventListener("load", function(){
       header.appendChild(box);
     });
 
-  /* 📋 行程拖曳（用點點） */
+  /* 📋 行程拖曳 */
   const list=document.querySelector(".space-y-4");
   if(list){
-    // 為每張卡片加上拖曳點點
-    Array.from(list.children).forEach(card=>{
-      if(card.querySelector(".drag-handle")) return;
-      const handle=document.createElement("div");
-      handle.innerHTML="⋮⋮";
-      handle.className="drag-handle";
-      handle.style.position="absolute";
-      handle.style.right="8px";
-      handle.style.top="8px";
-      handle.style.cursor="grab";
-      handle.style.fontSize="16px";
-      handle.style.color="#bbb";
-      card.style.position="relative";
-      card.appendChild(handle);
-    });
-
     new Sortable(list,{
-      handle: ".drag-handle",
-      animation: 150
+      animation:150
     });
   }
 
 });
-</script>
+</script>  
 </body>
 </html>
