@@ -590,5 +590,153 @@
         }
     }).mount('#app');
 </script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<script>
+/* =========================
+   Honeymoon App Enhancer
+   只增加功能，不修改原程式
+========================= */
+
+(function(){
+
+/* --------- 天氣 --------- */
+
+async function loadWeather(){
+
+  try{
+
+    const res = await fetch(
+      "https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&current_weather=true"
+    )
+
+    const data = await res.json()
+
+    const temp = Math.round(data.current_weather.temperature)
+
+    const box = document.createElement("div")
+
+    box.style.position="absolute"
+    box.style.top="14px"
+    box.style.right="14px"
+    box.style.background="rgba(255,255,255,0.85)"
+    box.style.padding="6px 10px"
+    box.style.borderRadius="12px"
+    box.style.fontSize="12px"
+    box.style.fontWeight="600"
+    box.innerHTML="☀️ "+temp+"°C"
+
+    const header=document.querySelector("header")
+
+    if(header) header.appendChild(box)
+
+  }catch(e){
+
+    console.log("weather error")
+
+  }
+
+}
+
+
+/* --------- 拖曳排序 --------- */
+
+function enableDrag(){
+
+  const observer=new MutationObserver(()=>{
+
+    const lists=document.querySelectorAll(".space-y-4")
+
+    lists.forEach(list=>{
+
+      if(list.dataset.dragready) return
+
+      list.dataset.dragready=true
+
+      new Sortable(list,{
+        animation:150,
+        ghostClass:"opacity-50",
+
+        onEnd:function(){
+
+          try{
+
+            if(window.app && window.app.saveData){
+
+              window.app.saveData()
+
+            }
+
+          }catch(e){
+
+            console.log("sync error")
+
+          }
+
+        }
+
+      })
+
+    })
+
+  })
+
+  observer.observe(document.body,{
+    childList:true,
+    subtree:true
+  })
+
+}
+
+
+/* --------- 旅行倒數 --------- */
+
+function addCountdown(){
+
+  const date="2026-05-05"
+
+  const target=new Date(date)
+
+  const today=new Date()
+
+  const diff=Math.ceil((target-today)/86400000)
+
+  if(diff<0) return
+
+  const box=document.createElement("div")
+
+  box.style.position="absolute"
+  box.style.left="14px"
+  box.style.top="14px"
+  box.style.background="rgba(255,255,255,0.85)"
+  box.style.padding="6px 10px"
+  box.style.borderRadius="12px"
+  box.style.fontSize="12px"
+  box.style.fontWeight="600"
+
+  box.innerHTML="✈️ "+diff+" days"
+
+  const header=document.querySelector("header")
+
+  if(header) header.appendChild(box)
+
+}
+
+
+/* --------- 啟動 --------- */
+
+window.addEventListener("load",()=>{
+
+  setTimeout(loadWeather,800)
+
+  setTimeout(enableDrag,1200)
+
+  setTimeout(addCountdown,1000)
+
+})
+
+})();
+
+</script>
 </body>
 </html>
