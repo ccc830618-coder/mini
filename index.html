@@ -591,101 +591,107 @@
     }).mount('#app');
 </script>
 
-    // ----------------------------
-// 1️⃣ 行程拖曳排序（點點 + 長按10秒）
-// ----------------------------
-const itineraryList = document.getElementById('itinerary-list');
-const sortable = Sortable.create(itineraryList, {
-  handle: '.drag-handle',
-  animation: 150,
-  delay: 10000, // 長按10秒才可拖動
-  delayOnTouchOnly: true,
-  onEnd: function(evt) {
-    const order = [];
-    itineraryList.querySelectorAll('.itinerary-card').forEach(card => {
-      order.push(card.dataset.id);
-    });
-    updateOrderToServer(order);
-    refreshTransportBlocks();
+    // ------------------------
+// 拖曳排序 (長按 10 秒 + 點點)
+// ------------------------
+const cardsContainer = document.getElementById('itinerary-cards');
+let draggedCard = null;
+let longPressTimer = null;
+
+cardsContainer.addEventListener('mousedown', e => {
+  if (!e.target.classList.contains('drag-handle')) return;
+  longPressTimer = setTimeout(() => {
+    draggedCard = e.target.parentElement;
+    draggedCard.style.opacity = 0.5;
+  }, 10000); // 長按 10 秒才能移動
+});
+
+cardsContainer.addEventListener('mouseup', e => {
+  clearTimeout(longPressTimer);
+  if (draggedCard) draggedCard.style.opacity = 1;
+});
+
+cardsContainer.addEventListener('dragstart', e => {
+  draggedCard = e.target;
+  e.dataTransfer.effectAllowed = 'move';
+});
+
+cardsContainer.addEventListener('dragover', e => {
+  e.preventDefault();
+  const afterElement = getDragAfterElement(cardsContainer, e.clientY);
+  if (afterElement == null) {
+    cardsContainer.appendChild(draggedCard);
+  } else {
+    cardsContainer.insertBefore(draggedCard, afterElement);
   }
 });
 
-// ----------------------------
-// 2️⃣ Tab 切換 + 美食內容
-// ----------------------------
-const tabButtons = document.querySelectorAll('.tab-btn');
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.card:not(.dragging)')];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+// ------------------------
+// 美食 Tab (按鈕 + 動態生成拉麵列表)
+// ------------------------
+const tabButtons = document.querySelectorAll('.tab-button');
 const tabContents = document.querySelectorAll('.tab-content');
 
-tabButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
+tabButtons.forEach(button => {
+  button.addEventListener('click', () => {
     tabButtons.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    button.classList.add('active');
+    tabContents.forEach(c => c.style.display = c.id === button.dataset.tab ? 'block' : 'none');
 
-    tabContents.forEach(c => c.classList.remove('active'));
-    const target = document.getElementById(btn.dataset.target);
-    target.classList.add('active');
-
-    if(btn.dataset.target === 'food'){
-      generateNearbyRamen(target);
+    if(button.dataset.tab === 'food') {
+      generateRamenList();
     }
   });
 });
 
-function generateNearbyRamen(container){
-  container.innerHTML = '';
-  const ramenList = [
-    { name: "博多一蘭拉麵", rating: 4.5 },
-    { name: "博多豚骨拉麵", rating: 4.2 },
-    { name: "元祖長浜屋", rating: 4.0 }
-  ];
-  ramenList.forEach(r => {
-    const div = document.createElement('div');
-    div.textContent = `${r.name} ⭐${r.rating}`;
-    container.appendChild(div);
+function generateRamenList() {
+  const list = document.getElementById('ramen-list');
+  list.innerHTML = '';
+  const sampleRamen = ['一蘭', '博多一幸舍', '豚骨拉麵田中', '拉麵山頭火'];
+  sampleRamen.forEach(name => {
+    const li = document.createElement('li');
+    li.textContent = name;
+    list.appendChild(li);
   });
 }
 
-// ----------------------------
-// 3️⃣ 行程交通時間
-// ----------------------------
-function refreshTransportBlocks(){
-  itineraryList.querySelectorAll('.transport-block').forEach(el => el.remove());
+// ------------------------
+// 行程交通時間 (固定區塊 + 選擇交通方式)
+// ------------------------
+const transportTimes = {
+  walk: 10,
+  train: 5
+};
 
-  const cards = itineraryList.querySelectorAll('.itinerary-card');
-  for(let i = 0; i < cards.length -1; i++){
-    const block = document.createElement('div');
-    block.className = 'transport-block';
-    const fromCard = cards[i];
-    const toCard = cards[i+1];
-    const transport = fromCard.dataset.transport || '步行';
-    block.textContent = `${transport} 時間: ${calculateTransportTime(transport)} 分鐘`;
-    toCard.before(block);
+cardsContainer.addEventListener('change', e => {
+  if(e.target.classList.contains('transport')) {
+    updateTransportTimes();
   }
-}
+});
 
-function calculateTransportTime(transport){
-  if(transport === '步行') return Math.floor(Math.random()*10)+5;
-  if(transport === '大眾運輸') return Math.floor(Math.random()*20)+10;
-  return 0;
+function updateTransportTimes() {
+  const cards = cardsContainer.querySelectorAll('.card');
+  cards.forEach((card, idx) => {
+    const transport = card.querySelector('.transport').value;
+    const nextTimeDiv = card.nextElementSibling;
+    if(nextTimeDiv && nextTimeDiv.classList.contains('transport-time')) {
+      nextTimeDiv.textContent = `${transport==='walk'?'步行':'大眾運輸'}: ${transportTimes[transport]} 分鐘`;
+    }
+  });
 }
-
-// ----------------------------
-// 新增行程表單範例
-// ----------------------------
-function addItineraryCard(id, content, transport='步行'){
-  const card = document.createElement('div');
-  card.className = 'itinerary-card';
-  card.dataset.id = id;
-  card.dataset.transport = transport;
-  card.innerHTML = `<div class="drag-handle">⠿</div>
-                    <div class="card-content">${content}</div>`;
-  itineraryList.appendChild(card);
-  refreshTransportBlocks();
-}
-
-// ----------------------------
-// 4️⃣ 福岡天氣與 5️⃣ 旅行倒數
-// 保持原先程式碼不動
-// ----------------------------
+updateTransportTimes();
 </body>
 </html>
