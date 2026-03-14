@@ -591,94 +591,89 @@
     }).mount('#app');
 </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
-window.addEventListener("load",function(){
+window.addEventListener("load", function(){
 
-/* ✈️ 旅行倒數 */
+  /* ✈️ 旅行倒數（到 2026/05/05） */
+  const target = new Date("2026-05-05T00:00:00+08:00");
+  const header = document.querySelector("header");
 
-const target=new Date("2026-03-14T00:00:00+08:00");
-const today=new Date();
-const diff=Math.ceil((target-today)/86400000);
+  if(header){
+    const box = document.createElement("div");
+    box.id = "countdownBox";
+    box.style.position = "absolute";
+    box.style.left = "14px";
+    box.style.top = "14px";
+    box.style.background = "rgba(255,255,255,0.9)";
+    box.style.padding = "6px 10px";
+    box.style.borderRadius = "12px";
+    box.style.fontSize = "12px";
+    header.appendChild(box);
 
-const header=document.querySelector("header");
+    function updateCountdown(){
+      const today = new Date();
+      const diff = Math.ceil((target - today) / 86400000);
+      box.innerHTML = "✈️ " + diff + " days";
+    }
 
-if(header){
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+  }
 
-const box=document.createElement("div");
+  /* 🌤️ 福岡7天天氣 */
+  fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo")
+    .then(res=>res.json())
+    .then(data=>{
+      if(!header) return;
+      const days=data.daily.time;
+      const temps=data.daily.temperature_2m_max;
+      const box=document.createElement("div");
+      box.style.position="absolute";
+      box.style.right="14px";
+      box.style.top="14px";
+      box.style.background="rgba(255,255,255,0.9)";
+      box.style.padding="6px";
+      box.style.borderRadius="12px";
+      box.style.fontSize="11px";
+      let html="";
+      for(let i=0;i<7;i++){
+        const d=new Date(days[i]);
+        const m=d.getMonth()+1;
+        const da=d.getDate();
+        html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`;
+      }
+      box.innerHTML=html;
+      header.appendChild(box);
+    });
 
-box.style.position="absolute";
-box.style.left="14px";
-box.style.top="14px";
-box.style.background="rgba(255,255,255,0.9)";
-box.style.padding="6px 10px";
-box.style.borderRadius="12px";
-box.style.fontSize="12px";
+  /* 📋 行程拖曳（用點點） */
+  const list=document.querySelector(".space-y-4");
+  if(list){
+    // 為每張卡片加上拖曳點點
+    Array.from(list.children).forEach(card=>{
+      if(card.querySelector(".drag-handle")) return;
+      const handle=document.createElement("div");
+      handle.innerHTML="⋮⋮";
+      handle.className="drag-handle";
+      handle.style.position="absolute";
+      handle.style.right="8px";
+      handle.style.top="8px";
+      handle.style.cursor="grab";
+      handle.style.fontSize="16px";
+      handle.style.color="#bbb";
+      card.style.position="relative";
+      card.appendChild(handle);
+    });
 
-box.innerHTML="✈️ "+diff+" days";
-
-header.appendChild(box);
-
-}
-
-
-/* 🌤️ 福岡7天天氣 */
-
-fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo")
-.then(res=>res.json())
-.then(data=>{
-
-const header=document.querySelector("header");
-
-if(!header) return;
-
-const days=data.daily.time;
-const temps=data.daily.temperature_2m_max;
-
-const box=document.createElement("div");
-
-box.style.position="absolute";
-box.style.right="14px";
-box.style.top="14px";
-box.style.background="rgba(255,255,255,0.9)";
-box.style.padding="6px";
-box.style.borderRadius="12px";
-box.style.fontSize="11px";
-
-let html="";
-
-for(let i=0;i<7;i++){
-
-const d=new Date(days[i]);
-
-const m=d.getMonth()+1;
-const da=d.getDate();
-
-html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`;
-
-}
-
-box.innerHTML=html;
-
-header.appendChild(box);
-
-});
-
-
-/* 📋 行程拖曳 */
-
-const list=document.querySelector(".space-y-4");
-
-if(list){
-
-new Sortable(list,{
-animation:150
-});
-
-}
+    new Sortable(list,{
+      handle: ".drag-handle",
+      animation: 150
+    });
+  }
 
 });
-</script>  
+</script>
 </body>
 </html>
