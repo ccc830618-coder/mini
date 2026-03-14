@@ -591,7 +591,7 @@
     }).mount('#app');
 </script>
 
-// ----------------------------
+    // ----------------------------
 // 1️⃣ 行程拖曳排序（點點 + 長按10秒）
 // ----------------------------
 const itineraryList = document.getElementById('itinerary-list');
@@ -682,43 +682,10 @@ function addItineraryCard(id, content, transport='步行'){
   itineraryList.appendChild(card);
   refreshTransportBlocks();
 }
-// ----------------------------
-// 4️⃣ 福岡 7天天氣 + 小日期
-// ----------------------------
-function displayWeather(data){
-  const container = document.getElementById('weather-list');
-  container.innerHTML = '';
-  data.forEach(day => {
-    const div = document.createElement('div');
-    div.className = 'weather-item';
-    div.innerHTML = `<div>${day.date}</div><div>${day.temp}°C</div><div>${day.icon}</div>`;
-    container.appendChild(div);
-  });
-}
-
-// 假資料
-displayWeather([
-  {date:'3/14', temp:15, icon:'☀️'},
-  {date:'3/15', temp:16, icon:'🌤️'},
-  {date:'3/16', temp:14, icon:'☁️'},
-  {date:'3/17', temp:12, icon:'🌧️'},
-  {date:'3/18', temp:13, icon:'⛅'},
-  {date:'3/19', temp:14, icon:'☀️'},
-  {date:'3/20', temp:16, icon:'🌤️'}
-]);
 
 // ----------------------------
-// 5️⃣ 旅行倒數
+// 4️⃣ 福岡天氣與 5️⃣ 旅行倒數
+// 保持原先程式碼不動
 // ----------------------------
-function updateCountdown(targetDate){
-  const today = new Date();
-  const diffTime = targetDate - today;
-  const diffDays = Math.ceil(diffTime / (1000*60*60*24));
-  document.getElementById('days-left').textContent = diffDays >= 0 ? diffDays : 0;
-}
-
-// 假設出發日
-updateCountdown(new Date('2025-11-30'));
-      
 </body>
 </html>
