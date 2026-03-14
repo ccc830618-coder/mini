@@ -591,245 +591,178 @@
     }).mount('#app');
 </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
 (function(){
 
 /* =====================
-   倒數
+  倒數
 ===================== */
-
 function addCountdown(){
-
-const target=new Date("2025-11-30T00:00:00+08:00")
-const today=new Date()
-
-const diff=Math.ceil((target-today)/86400000)
-
-const header=document.querySelector("header")
-
-if(!header) return
-
-if(document.querySelector("#countdownBox")) return
-
-const box=document.createElement("div")
-
-box.id="countdownBox"
-
-box.style.position="absolute"
-box.style.left="14px"
-box.style.top="14px"
-box.style.background="rgba(255,255,255,0.85)"
-box.style.padding="6px 10px"
-box.style.borderRadius="12px"
-box.style.fontSize="12px"
-
-box.innerHTML="✈️ "+diff+" days"
-
-header.appendChild(box)
-
+  const target=new Date("2025-11-30T00:00:00+08:00");
+  const today=new Date();
+  const diff=Math.ceil((target-today)/86400000);
+  const header=document.querySelector("header");
+  if(!header) return;
+  if(document.querySelector("#countdownBox")) return;
+  const box=document.createElement("div");
+  box.id="countdownBox";
+  box.style.position="absolute";
+  box.style.left="14px";
+  box.style.top="14px";
+  box.style.background="rgba(255,255,255,0.85)";
+  box.style.padding="6px 10px";
+  box.style.borderRadius="12px";
+  box.style.fontSize="12px";
+  box.innerHTML="✈️ "+diff+" days";
+  header.appendChild(box);
 }
 
-
 /* =====================
-   7天福岡天氣
+  7天福岡天氣
 ===================== */
-
 async function loadWeather(){
-
-try{
-
-const res=await fetch(
-"https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo"
-)
-
-const data=await res.json()
-
-const days=data.daily.time
-const temps=data.daily.temperature_2m_max
-
-const header=document.querySelector("header")
-
-if(!header) return
-
-if(document.querySelector("#weatherBox")) return
-
-const box=document.createElement("div")
-
-box.id="weatherBox"
-
-box.style.position="absolute"
-box.style.right="14px"
-box.style.top="14px"
-box.style.background="rgba(255,255,255,0.85)"
-box.style.padding="6px"
-box.style.borderRadius="12px"
-box.style.fontSize="11px"
-
-let html=""
-
-for(let i=0;i<7;i++){
-
-const d=new Date(days[i])
-const m=d.getMonth()+1
-const da=d.getDate()
-
-html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`
-
+  try{
+    const res=await fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo");
+    const data=await res.json();
+    const days=data.daily.time;
+    const temps=data.daily.temperature_2m_max;
+    const header=document.querySelector("header");
+    if(!header) return;
+    if(document.querySelector("#weatherBox")) return;
+    const box=document.createElement("div");
+    box.id="weatherBox";
+    box.style.position="absolute";
+    box.style.right="14px";
+    box.style.top="14px";
+    box.style.background="rgba(255,255,255,0.85)";
+    box.style.padding="6px";
+    box.style.borderRadius="12px";
+    box.style.fontSize="11px";
+    let html="";
+    for(let i=0;i<7;i++){
+      const d=new Date(days[i]);
+      const m=d.getMonth()+1;
+      const da=d.getDate();
+      html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`;
+    }
+    box.innerHTML=html;
+    header.appendChild(box);
+  }catch(e){}
 }
-
-box.innerHTML=html
-
-header.appendChild(box)
-
-}catch(e){}
-
-}
-
 
 /* =====================
-   拖曳排序
+  長按 10 秒拖曳
 ===================== */
-
-function enableSmartDrag(){
-
-const observer=new MutationObserver(()=>{
-
-const list=document.querySelector(".space-y-4")
-
-if(!list) return
-
-if(list.dataset.dragReady) return
-
-list.dataset.dragReady=true
-
-list.querySelectorAll(":scope > *").forEach(card=>{
-
-if(card.querySelector(".drag-handle")) return
-
-card.style.position="relative"
-
-const handle=document.createElement("div")
-
-handle.innerHTML="⋮⋮"
-handle.className="drag-handle"
-
-handle.style.position="absolute"
-handle.style.right="8px"
-handle.style.top="8px"
-handle.style.cursor="grab"
-handle.style.fontSize="16px"
-handle.style.color="#bbb"
-
-card.appendChild(handle)
-
-})
-
-new Sortable(list,{
-handle:".drag-handle",
-animation:150
-})
-
-})
-
-observer.observe(document.body,{childList:true,subtree:true})
-
+function enableLongPressDrag(){
+  const observer=new MutationObserver(()=>{
+    const list=document.querySelector(".space-y-4");
+    if(!list) return;
+    if(list.dataset.dragReady) return;
+    list.dataset.dragReady=true;
+    list.querySelectorAll(":scope > *").forEach(card=>{
+      if(card.querySelector(".drag-handle")) return;
+      card.style.position="relative";
+      const handle=document.createElement("div");
+      handle.innerHTML="⋮⋮";
+      handle.className="drag-handle";
+      handle.style.position="absolute";
+      handle.style.right="8px";
+      handle.style.top="8px";
+      handle.style.cursor="grab";
+      handle.style.fontSize="16px";
+      handle.style.color="#bbb";
+      card.appendChild(handle);
+      // 長按拖曳
+      let timer=null;
+      handle.addEventListener("mousedown",e=>{
+        e.preventDefault();
+        timer=setTimeout(()=>{
+          handle.style.cursor="grabbing";
+          new Sortable(list,{
+            handle:".drag-handle",
+            animation:150
+          });
+        },10000); // 10秒
+      });
+      handle.addEventListener("mouseup",e=>{
+        clearTimeout(timer);
+        handle.style.cursor="grab";
+      });
+      handle.addEventListener("mouseleave",e=>clearTimeout(timer));
+    });
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
 }
 
-
 /* =====================
-   美食TAB
+  美食 TAB
 ===================== */
-
 function addFoodTab(){
+  const observer=new MutationObserver(()=>{
+    const tabs=[...document.querySelectorAll("button")];
+    const shopTab=tabs.find(t=>t.innerText.includes("購物"));
+    if(!shopTab) return;
+    if(document.querySelector("#food-tab")) return;
+    const foodTab=shopTab.cloneNode(true);
+    foodTab.id="food-tab";
+    foodTab.innerText="美食";
+    shopTab.after(foodTab);
 
-const observer=new MutationObserver(()=>{
+    // 內容區域
+    const container=document.createElement("div");
+    container.id="food-content";
+    container.style.padding="8px";
+    container.innerHTML="🍜 附近拉麵：<ul><li>博多一幸舎</li><li>元祖長浜屋</li><li>だるま</li></ul>";
+    shopTab.parentNode.parentNode.appendChild(container);
+    container.style.display="none";
 
-const tabs=[...document.querySelectorAll("button")]
-
-const shopTab=tabs.find(t=>t.innerText.includes("購物"))
-
-if(!shopTab) return
-
-if(document.querySelector("#food-tab")) return
-
-const foodTab=shopTab.cloneNode(true)
-
-foodTab.id="food-tab"
-
-foodTab.innerText="美食"
-
-shopTab.after(foodTab)
-
-foodTab.onclick=()=>{
-
-alert("🍜 美食搜尋功能可以放在這頁")
-
+    foodTab.onclick=()=>{
+      container.style.display=container.style.display==="none"?"block":"none";
+    }
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
 }
-
-})
-
-observer.observe(document.body,{childList:true,subtree:true})
-
-}
-
 
 /* =====================
-   行程交通時間
+  行程交通時間
 ===================== */
+function updateTransitTime(){
+  const list=document.querySelector(".space-y-4");
+  if(!list) return;
+  const cards=[...list.children];
+  // 移除舊交通區塊
+  list.querySelectorAll(".transit").forEach(t=>t.remove());
 
-function generateTransitTime(){
-
-const cards=[...document.querySelectorAll(".space-y-4 > *")]
-
-cards.forEach((card,i)=>{
-
-if(i===cards.length-1) return
-
-if(card.nextElementSibling && card.nextElementSibling.classList.contains("transit")) return
-
-const box=document.createElement("div")
-
-box.className="transit"
-
-box.style.textAlign="center"
-box.style.fontSize="12px"
-box.style.color="#888"
-box.style.margin="6px"
-
-const walk=Math.floor(Math.random()*10)+5
-
-box.innerText="🚶 "+walk+" 分"
-
-card.after(box)
-
-})
-
+  cards.forEach((card,i)=>{
+    if(i===cards.length-1) return;
+    const box=document.createElement("div");
+    box.className="transit";
+    box.style.textAlign="center";
+    box.style.fontSize="12px";
+    box.style.color="#888";
+    box.style.margin="6px";
+    // 假資料
+    const walk=Math.floor(Math.random()*10)+5;
+    const bus=Math.floor(Math.random()*15)+10;
+    box.innerText=`🚶 ${walk} 分 | 🚌 ${bus} 分`;
+    card.after(box);
+  });
 }
 
-
 /* =====================
-   啟動
+  啟動
 ===================== */
-
 window.addEventListener("load",()=>{
-
-addCountdown()
-
-loadWeather()
-
-enableSmartDrag()
-
-addFoodTab()
-
-generateTransitTime()
-
-setInterval(generateTransitTime,2000)
-
-})
-
+  addCountdown();
+  loadWeather();
+  enableLongPressDrag();
+  addFoodTab();
+  updateTransitTime();
+  setInterval(updateTransitTime,2000);
+});
 })();
-</script>
+</script>  
 </body>
 </html>
