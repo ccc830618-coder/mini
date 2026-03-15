@@ -698,5 +698,118 @@ window.addEventListener("load", function(){
 
 });
 </script>
+
+<!-- 在原本的 </body> 標籤前加入以下程式碼 -->
+
+<style>
+    /* 加入拖拽手柄的樣式 */
+    .drag-handle {
+        cursor: grab;
+        padding: 8px;
+        color: #ddd;
+        transition: color 0.2s;
+    }
+    .drag-handle:active { cursor: grabbing; }
+    .drag-item:hover .drag-handle { color: #A160CE; }
+    
+    /* 拖動時的預覽樣式 */
+    .sortable-ghost {
+        opacity: 0.3;
+        background: #F4EBFC !important;
+        border: 2px dashed #A160CE !important;
+    }
+    .sortable-chosen {
+        transform: scale(1.02);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+</style>
+
+<script>
+/**
+ * 這是獨立的行程拖拽優化腳本
+ * 它會自動尋找行程列表並初始化穩定的拖拽功能
+ */
+(function() {
+    const initSortableEnhancement = () => {
+        // 找到行程列表容器
+        // 注意：這裡假設 Vue 渲染後的列表結構
+        const listContainer = document.querySelector('#app main > div[v-show*="itinerary"] .space-y-4');
+        
+        if (!listContainer) return;
+
+        // 1. 為每個卡片添加拖拽手柄 (如果還沒有的話)
+        const addHandles = () => {
+            const items = listContainer.querySelectorAll('.bg-white.rounded-3xl');
+            items.forEach(item => {
+                if (!item.querySelector('.drag-handle')) {
+                    item.classList.add('flex', 'items-center', 'drag-item');
+                    
+                    // 創建手柄
+                    const handle = document.createElement('div');
+                    handle.className = 'drag-handle flex items-center justify-center';
+                    handle.innerHTML = '<i class="ph-bold ph-dots-six-vertical text-xl"></i>';
+                    
+                    // 將手柄插入到卡片內容的最前面
+                    item.prepend(handle);
+                }
+            });
+        };
+
+        // 初始執行一次
+        addHandles();
+
+        // 2. 初始化 Sortable
+        if (window.Sortable) {
+            // 如果已經有舊的實例則銷毀
+            if (window._itinerarySortable) window._itinerarySortable.destroy();
+
+            window._itinerarySortable = new Sortable(listContainer, {
+                handle: '.drag-handle', // 只有按住手柄才能拖動
+                animation: 250,         // 動畫流暢度
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                forceFallback: false,    // 手機原生支持
+                onEnd: function (evt) {
+                    // 當拖拽結束時，觸發 Vue 數據更新
+                    // 取得 Vue app 實例
+                    const appEl = document.querySelector('#app');
+                    if (appEl && appEl.__vue_app__) {
+                        const vueInstance = appEl.__vue_app__._instance.proxy;
+                        const activeDate = vueInstance.activeDate;
+                        const currentList = vueInstance.itinerary[activeDate];
+                        
+                        // 根據拖動結果重新排列陣列
+                        const movedItem = currentList.splice(evt.oldIndex, 1)[0];
+                        currentList.splice(evt.newIndex, 0, movedItem);
+                        
+                        // 調用 Vue 內的存檔函數
+                        if (vueInstance.saveData) {
+                            vueInstance.saveData();
+                        }
+                    }
+                }
+            });
+        }
+
+        // 監聽 DOM 變化（當切換日期時，Vue 會重新渲染列表，需要重新檢查手柄）
+        const observer = new MutationObserver(() => {
+            addHandles();
+        });
+        observer.observe(listContainer, { childList: true });
+    };
+
+    // 延遲一點執行，確保 Vue 已經掛載並渲染
+    window.addEventListener('load', () => {
+        setTimeout(initSortableEnhancement, 1000);
+    });
+
+    // 當切換分頁或日期時也嘗試重新初始化
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('button') || e.target.closest('.rounded-2xl')) {
+            setTimeout(initSortableEnhancement, 100);
+        }
+    });
+})();
+</script>
 </body>
 </html>
