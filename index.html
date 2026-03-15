@@ -7,8 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- 1. 額外載入拖拉庫，不影響現有結構 -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -31,15 +29,13 @@
         @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s ease-out; }
         [v-cloak] { display: none; }
-        /* 拖拉時的視覺回饋 */
-        .sort-ghost { opacity: 0.2; background: #BD8ADD !important; }
     </style>
 </head>
 <body class="text-gray-700 antialiased">
 
 <div id="app" v-cloak class="max-w-md mx-auto bg-lavender-50 min-h-screen relative shadow-xl overflow-hidden">
     
-    <!-- 頁首 Banner (完全保留您原本的圖與導覽) -->
+    <!-- 頁首 Banner -->
     <header class="relative h-[220px] w-full bg-lavender-200">
         <img src="M6cH6f4bdmcJryLEtnmhGktaYkUSfReqd8p9GlWL__1682_1121.jpg" alt="Fukuoka" class="w-full h-full object-cover object-left" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80'">
         <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
@@ -48,6 +44,7 @@
             <p class="text-lavender-100 text-xs font-bold mt-1 tracking-[0.3em]">HONEYMOON 2026</p>
         </div>
         
+        <!-- 導覽切換 -->
         <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-1 bg-white/20 backdrop-blur-md p-1 rounded-2xl border border-white/30 z-20">
             <button @click="activeTab = 'itinerary'" :class="activeTab === 'itinerary' ? 'bg-white text-lavender-600 shadow-sm' : 'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">行程</button>
             <button @click="activeTab = 'info'" :class="activeTab === 'info' ? 'bg-white text-lavender-600 shadow-sm' : 'text-white'" class="px-4 py-1.5 rounded-xl text-xs font-black transition-all">清單</button>
@@ -58,6 +55,7 @@
 
     <main class="bg-lavender-50 rounded-t-[32px] -mt-6 relative z-10 min-h-[calc(100vh-156px)] pb-24 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
         
+        <!-- 雲端同步狀態顯示 -->
         <div class="flex flex-col items-center justify-center py-3 space-y-1">
             <div class="flex items-center space-x-2 cursor-pointer active:scale-95 transition-all" @click="changeUserName">
                 <div :class="dbConnected ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)] animate-pulse' : 'bg-red-400'" class="w-1.5 h-1.5 rounded-full"></div>
@@ -73,9 +71,8 @@
             </span>
         </div>
 
-        <!-- 1. 行程分頁 (結構 100% 保持您原本的樣子，只在列表加上 id 做拖拉) -->
+        <!-- 1. 行程分頁 -->
         <div v-show="activeTab === 'itinerary'" class="px-5">
-            <!-- 機票部分 -->
             <div class="space-y-3 mb-4">
                 <div @click="openFlightEdit('departure')" class="bg-white rounded-2xl p-4 shadow-sm border border-lavender-100 active:scale-95 transition-all">
                     <div class="flex justify-between items-center mb-3">
@@ -142,11 +139,10 @@
                 </div>
             </div>
 
-            <!-- 行程列表 (加上 id="itinerary-list-container") -->
-            <div id="itinerary-list-container" class="space-y-4 mt-4 min-h-[50px]">
-                <div v-for="(item, idx) in itinerary[activeDate]" :key="item.id" @click="openEditItinerary(item, idx)" 
-                     class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-95 transition-all cursor-move">
-                    <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover pointer-events-none">
+            <!-- 行程列表 -->
+            <div class="space-y-4 mt-4">
+                <div v-for="(item, idx) in itinerary[activeDate]" :key="item.id" @click="openEditItinerary(item, idx)" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-95 transition-all">
+                    <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover">
                     <div class="p-4">
                         <div class="flex justify-between items-start">
                             <div>
@@ -155,7 +151,6 @@
                             </div>
                             <div class="flex space-x-2">
                                 <a v-if="item.mapUrl" :href="item.mapUrl" target="_blank" @click.stop class="text-blue-400 p-2 bg-blue-50 rounded-full"><i class="ph-bold ph-map-pin"></i></a>
-                                <i class="ph ph-dots-six-vertical text-gray-300 text-xl"></i>
                             </div>
                         </div>
                         <div class="flex items-center space-x-3 mt-2 text-xs text-gray-400 font-bold">
@@ -168,7 +163,7 @@
             <button @click="openAddModal('itinerary')" class="fixed bottom-8 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center z-50"><i class="ph ph-plus text-2xl font-bold"></i></button>
         </div>
 
-        <!-- 2. 清單分頁 (100% 原始結構) -->
+        <!-- 2. 清單分頁 -->
         <div v-show="activeTab === 'info'" class="pt-6 px-5 space-y-6">
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-lavender-100">
                 <div class="flex justify-between items-center mb-4">
@@ -193,7 +188,7 @@
                 </div>
             </div>
 
-            <!-- 行前檢查 (原始結構) -->
+            <!-- 行前檢查 -->
             <div class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden">
                 <div class="p-6 pb-2 flex justify-between items-center">
                     <h3 class="font-bold text-gray-800 flex items-center"><i class="ph-fill ph-check-square mr-2 text-lavender-500"></i>行前檢查</h3>
@@ -219,7 +214,7 @@
                 </div>
             </div>
 
-            <!-- 行李清單 (原始結構) -->
+            <!-- 行李清單 -->
             <div class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden">
                 <div class="p-6 pb-2 flex justify-between items-center">
                     <h3 class="font-bold text-gray-800 flex items-center"><i class="ph-fill ph-suitcase mr-2 text-lavender-500"></i>行李清單</h3>
@@ -246,7 +241,7 @@
             </div>
         </div>
 
-        <!-- 3. 購物分頁 (原始結構) -->
+        <!-- 3. 購物分頁 -->
         <div v-show="activeTab === 'shopping'" class="pt-6 px-5 space-y-6">
             <div v-for="(cat, cIdx) in shopping" :key="cIdx" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden">
                 <div class="p-4 bg-lavender-50/50 flex justify-between items-center border-b border-lavender-50"><input v-model="cat.name" @change="saveData" class="font-black text-gray-700 bg-transparent outline-none"><button @click="shopping.splice(cIdx, 1); saveData()" class="text-gray-200"><i class="ph ph-trash"></i></button></div>
@@ -269,7 +264,7 @@
             <button @click="shopping.push({name: '新大項', items: []}); saveData()" class="w-full py-5 border-2 border-dashed border-lavender-100 rounded-[2rem] text-lavender-300 font-black text-xs uppercase">+ 新增購物分類</button>
         </div>
 
-        <!-- 4. 花費分頁 (原始結構) -->
+        <!-- 4. 花費分頁 -->
         <div v-show="activeTab === 'expense'" class="pt-6 px-5">
             <div class="bg-gradient-to-br from-lavender-500 to-lavender-700 p-8 rounded-[32px] text-white shadow-xl mb-6 text-center">
                 <p class="text-[10px] opacity-70 mb-1 font-black uppercase">總花費 (TWD)</p>
@@ -288,7 +283,7 @@
         </div>
     </main>
 
-    <!-- 模態框系統 (原始結構) -->
+    <!-- 模態框系統 -->
     <div v-if="modal.show" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center px-4">
         <div class="bg-white w-full max-w-md rounded-t-[40px] p-8 shadow-2xl animate-slide-up max-h-[85vh] overflow-y-auto no-scrollbar">
             <div class="flex justify-between items-center mb-6">
@@ -395,11 +390,10 @@
     const db = getFirestore(firebaseApp);
     const dbRef = doc(db, 'honeymoon_projects', 'fukuoka_2026_final_sync');
 
-    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+    const { createApp, ref, computed, onMounted } = Vue;
 
     createApp({
         setup() {
-            // 所有變數名稱完全對應原始碼，確保資料抓得到
             const activeTab = ref('itinerary');
             const activeDate = ref('2026-05-05');
             const dbConnected = ref(false);
@@ -413,9 +407,12 @@
             const weather = ref({ temp: '--', desc: '更新中...', icon: 'ph ph-sun-dim' });
 
             const dates = [
-                { id: '2026-05-05', day: 'Tue', date: '5/5' }, { id: '2026-05-05_2', day: 'Tue', date: '5/5' },
-                { id: '2026-05-06', day: 'Wed', date: '5/6' }, { id: '2026-05-07', day: 'Thu', date: '5/7' }, 
-                { id: '2026-05-08', day: 'Fri', date: '5/8' }, { id: '2026-05-09', day: 'Sat', date: '5/9' }, 
+                { id: '2026-05-05', day: 'Tue', date: '5/5' }, 
+                { id: '2026-05-05_2', day: 'Tue', date: '5/5' },
+                { id: '2026-05-06', day: 'Wed', date: '5/6' }, 
+                { id: '2026-05-07', day: 'Thu', date: '5/7' }, 
+                { id: '2026-05-08', day: 'Fri', date: '5/8' },
+                { id: '2026-05-09', day: 'Sat', date: '5/9' }, 
                 { id: '2026-05-10', day: 'Sun', date: '5/10' }
             ];
 
@@ -425,12 +422,13 @@
             });
 
             const itinerary = ref({
-                '2026-05-05': [], '2026-05-05_2': [], '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
+                '2026-05-05': [], '2026-05-05_2': [], 
+                '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
             });
 
-            const preCheck = ref([]);
-            const luggage = ref([]);
-            const shopping = ref([]);
+            const preCheck = ref([{ name: '行前文件', items: [{ name: '護照', done: true }, { name: 'VJW', done: false }] }]);
+            const luggage = ref([{ name: '必備用品', items: [{ name: '行動電源', done: false }] }]);
+            const shopping = ref([{ name: '美妝藥妝', items: [{ name: '合利他命', done: false, tags: ['必買'] }] }]);
             const expenses = ref([]);
 
             const modal = ref({ show: false, type: '', title: '', mode: 'add', target: null, idx: null });
@@ -439,34 +437,16 @@
             const formShop = ref({ tags: [] });
             const customTag = ref('');
 
-            // --- 核心更新：拖拉初始化函數 ---
-            let sortableInstance = null;
-            const initSortable = () => {
-                const el = document.getElementById('itinerary-list-container');
-                if (!el) return;
-                if (sortableInstance) sortableInstance.destroy();
-                sortableInstance = new Sortable(el, {
-                    animation: 250,
-                    ghostClass: 'sort-ghost',
-                    onEnd: (evt) => {
-                        const list = itinerary.value[activeDate.value];
-                        const movedItem = list.splice(evt.oldIndex, 1)[0];
-                        list.splice(evt.newIndex, 0, movedItem);
-                        saveData();
-                    }
-                });
-            };
-
-            // 監聽日期變化，變化時重新啟動拖拉
-            watch(activeDate, () => { nextTick(() => initSortable()); });
-            watch(activeTab, (newTab) => { if(newTab === 'itinerary') nextTick(() => initSortable()); });
-
             const changeUserName = () => {
-                const inputName = prompt('請輸入你的名字', userName.value);
-                if (inputName) { userName.value = inputName; localStorage.setItem('fukuoka_username', inputName); }
+                const inputName = prompt('請輸入你的名字 (讓大家知道是誰在更新喔！)', userName.value);
+                if (inputName && inputName.trim() !== '') {
+                    userName.value = inputName.trim();
+                    localStorage.setItem('fukuoka_username', userName.value);
+                }
             };
 
             const saveData = async () => {
+                if (!userName.value) changeUserName();
                 const data = {
                     flights: JSON.parse(JSON.stringify(flights.value)),
                     itinerary: JSON.parse(JSON.stringify(itinerary.value)),
@@ -477,11 +457,15 @@
                     lastUpdate: Date.now(),
                     lastUpdatedBy: userName.value || '神秘旅伴'
                 };
-                try { await setDoc(dbRef, data); } catch (e) { console.error(e); }
+                localStorage.setItem('fukuoka_honeymoon_vfinal', JSON.stringify(data));
+                try { await setDoc(dbRef, data); } catch (e) { console.error("Cloud Sync Failed", e); }
             };
 
-            const updateTime = () => { currentTime.value = new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }); };
-            const fetchWeather = async () => { /* 這裡保持與原本邏輯一致 */
+            const updateTime = () => {
+                currentTime.value = new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            };
+
+            const fetchWeather = async () => {
                 try {
                     const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&current_weather=true');
                     const data = await res.json();
@@ -493,23 +477,85 @@
             const jpyToTwd = () => twd.value = Math.round(jpy.value * rate.value);
             const twdToJpy = () => jpy.value = Math.round(twd.value / rate.value);
 
-            // 模態框與編輯邏輯 (完全保留)
-            const openFlightEdit = (target) => { modal.value = { show: true, type: 'flight', title: target === 'departure' ? '5/5 去程' : '5/10 回程', target }; formFlight.value = { ...flights.value[target] }; };
+            const openFlightEdit = (target) => {
+                modal.value = { show: true, type: 'flight', title: target === 'departure' ? '5/5 去程' : '5/10 回程', target };
+                formFlight.value = { ...flights.value[target] };
+            };
             const saveFlight = () => { flights.value[modal.value.target] = { ...formFlight.value }; modal.value.show = false; saveData(); };
-            const openAddModal = (type) => { modal.value = { show: true, type, title: '新增項目', mode: 'add' }; if (type === 'itinerary') form.value = { category: '景點', name: '', time: '', mapUrl: '', image: '', note: '' }; else form.value = { name: '', amount: null, note: '' }; };
-            const openEditItinerary = (item, idx) => { modal.value = { show: true, type: 'itinerary', title: '編輯行程', mode: 'edit', idx }; form.value = { ...item }; };
-            const openEditExpense = (item, idx) => { modal.value = { show: true, type: 'expense', title: '編輯花費', mode: 'edit', idx }; form.value = { ...item }; };
-            const saveItinerary = () => { if (modal.value.mode === 'edit') { itinerary.value[activeDate.value][modal.value.idx] = { ...form.value }; } else { itinerary.value[activeDate.value].push({ ...form.value, id: Date.now() }); } modal.value.show = false; saveData(); };
+
+            const openAddModal = (type) => {
+                modal.value = { show: true, type, title: '新增項目', mode: 'add' };
+                if (type === 'itinerary') form.value = { category: '景點', name: '', time: '', mapUrl: '', image: '', note: '' };
+                else form.value = { name: '', amount: null, note: '' };
+            };
+
+            const openEditItinerary = (item, idx) => {
+                modal.value = { show: true, type: 'itinerary', title: '編輯行程', mode: 'edit', idx };
+                form.value = { ...item };
+            };
+
+            const openEditExpense = (item, idx) => {
+                modal.value = { show: true, type: 'expense', title: '編輯花費', mode: 'edit', idx };
+                form.value = { ...item };
+            };
+
+            const deleteExpense = () => {
+                expenses.value.splice(modal.value.idx, 1);
+                modal.value.show = false;
+                saveData();
+            };
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => { form.value.image = event.target.result; };
+                reader.readAsDataURL(file);
+            };
+
+            const saveItinerary = () => {
+                if (modal.value.mode === 'edit') { itinerary.value[activeDate.value][modal.value.idx] = { ...form.value }; } 
+                else { itinerary.value[activeDate.value].push({ ...form.value, id: Date.now() }); }
+                modal.value.show = false; saveData();
+            };
+
             const deleteItinerary = (idx) => { itinerary.value[activeDate.value].splice(idx, 1); modal.value.show = false; saveData(); };
-            const saveExpense = () => { if (modal.value.mode === 'edit') expenses.value[modal.value.idx] = { ...form.value }; else expenses.value.unshift({ ...form.value, id: Date.now() }); modal.value.show = false; saveData(); };
-            const deleteExpense = () => { expenses.value.splice(modal.value.idx, 1); modal.value.show = false; saveData(); };
-            const handleImageUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { form.value.image = event.target.result; }; reader.readAsDataURL(file); };
+            
+            const saveExpense = () => {
+                if (modal.value.mode === 'edit') {
+                    expenses.value[modal.value.idx] = { ...form.value };
+                } else {
+                    expenses.value.unshift({ ...form.value, id: Date.now() });
+                }
+                modal.value.show = false; 
+                saveData();
+            };
+
             const openAddItemToShopping = (cat) => { modal.value = { show: true, type: 'shoppingItem', title: `新增到 ${cat.name}`, target: cat, mode: 'add' }; formShop.value = { name: '', tags: [], done: false }; };
-            const openEditShoppingItem = (cat, item, idx) => { modal.value = { show: true, type: 'shoppingItem', title: '編輯商品', target: cat, idx, mode: 'edit' }; formShop.value = JSON.parse(JSON.stringify(item)); };
-            const saveShoppingItem = () => { if (modal.value.mode === 'edit') modal.value.target.items[modal.value.idx] = { ...formShop.value }; else modal.value.target.items.push({ ...formShop.value }); modal.value.show = false; saveData(); };
-            const deleteShoppingItem = () => { modal.value.target.items.splice(modal.value.idx, 1); modal.value.show = false; saveData(); };
+            
+            const openEditShoppingItem = (cat, item, idx) => {
+                modal.value = { show: true, type: 'shoppingItem', title: '編輯商品', target: cat, idx, mode: 'edit' };
+                formShop.value = JSON.parse(JSON.stringify(item));
+            };
+
+            const deleteShoppingItem = () => {
+                modal.value.target.items.splice(modal.value.idx, 1);
+                modal.value.show = false;
+                saveData();
+            };
+
             const toggleTag = (t) => { const idx = formShop.value.tags.indexOf(t); if (idx === -1) formShop.value.tags.push(t); else formShop.value.tags.splice(idx, 1); };
             const addCustomTag = () => { if (customTag.value) { formShop.value.tags.push(customTag.value); customTag.value = ''; } };
+            
+            const saveShoppingItem = () => { 
+                if (modal.value.mode === 'edit') {
+                    modal.value.target.items[modal.value.idx] = { ...formShop.value };
+                } else {
+                    modal.value.target.items.push({ ...formShop.value }); 
+                }
+                modal.value.show = false; saveData(); 
+            };
+
             const addListCategory = (list) => { list.push({ name: '新分類', items: [] }); saveData(); };
             const addItemToList = (cat) => { cat.items.push({ name: '新項目', done: false }); saveData(); };
             const totalExpenseTwd = computed(() => expenses.value.reduce((s, i) => s + (Number(i.amount) || 0), 0));
@@ -521,15 +567,16 @@
                     if (snap.exists()) {
                         const d = snap.data();
                         if(d.flights) flights.value = d.flights;
-                        if(d.itinerary) itinerary.value = d.itinerary;
+                        if(d.itinerary) {
+                            itinerary.value = d.itinerary;
+                            if(!itinerary.value['2026-05-05_2']) itinerary.value['2026-05-05_2'] = [];
+                        }
                         if(d.preCheck) preCheck.value = d.preCheck;
                         if(d.luggage) luggage.value = d.luggage;
                         if(d.shopping) shopping.value = d.shopping;
                         if(d.expenses) expenses.value = d.expenses;
                         if(d.lastUpdatedBy) lastUpdatedBy.value = d.lastUpdatedBy;
                     }
-                    // 資料載入後啟動拖拉
-                    nextTick(() => initSortable());
                 }, (err) => { dbConnected.value = false; });
             });
 
@@ -544,35 +591,71 @@
     }).mount('#app');
 </script>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
 <script>
-/* 這裡完全保留您原本寫在最後面的倒數計時與 7 天天氣 JS */
 window.addEventListener("load", function(){
+
+  /* ✈️ 旅行倒數（動態更新到 2026/05/05） */
   const target = new Date("2026-05-05T00:00:00+08:00");
   const header = document.querySelector("header");
+
   if(header){
     const box = document.createElement("div");
-    box.style.position = "absolute"; box.style.left = "14px"; box.style.top = "14px"; box.style.background = "rgba(255,255,255,0.9)";
-    box.style.padding = "6px 10px"; box.style.borderRadius = "12px"; box.style.fontSize = "12px"; box.style.zIndex="30";
+    box.id = "countdownBox";
+    box.style.position = "absolute";
+    box.style.left = "14px";
+    box.style.top = "14px";
+    box.style.background = "rgba(255,255,255,0.9)";
+    box.style.padding = "6px 10px";
+    box.style.borderRadius = "12px";
+    box.style.fontSize = "12px";
     header.appendChild(box);
+
     function updateCountdown(){
-      const today = new Date(); const diff = Math.ceil((target - today) / 86400000);
+      const today = new Date();
+      const diff = Math.ceil((target - today) / 86400000);
       box.innerHTML = "✈️ " + diff + " days";
     }
-    updateCountdown(); setInterval(updateCountdown, 60000);
+
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
   }
 
+  /* 🌤️ 福岡7天天氣 */
   fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo")
     .then(res=>res.json())
     .then(data=>{
-      const box=document.createElement("div"); box.style.position="absolute"; box.style.right="14px"; box.style.top="14px";
-      box.style.background="rgba(255,255,255,0.9)"; box.style.padding="6px"; box.style.borderRadius="12px";
-      box.style.fontSize="11px"; box.style.zIndex="30";
+      if(!header) return;
+      const days=data.daily.time;
+      const temps=data.daily.temperature_2m_max;
+      const box=document.createElement("div");
+      box.style.position="absolute";
+      box.style.right="14px";
+      box.style.top="14px";
+      box.style.background="rgba(255,255,255,0.9)";
+      box.style.padding="6px";
+      box.style.borderRadius="12px";
+      box.style.fontSize="11px";
       let html="";
       for(let i=0;i<7;i++){
-        const d=new Date(data.daily.time[i]); html+=`${d.getMonth()+1}/${d.getDate()} ☀️${Math.round(data.daily.temperature_2m_max[i])}°<br>`;
+        const d=new Date(days[i]);
+        const m=d.getMonth()+1;
+        const da=d.getDate();
+        html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`;
       }
-      box.innerHTML=html; header.appendChild(box);
+      box.innerHTML=html;
+      header.appendChild(box);
     });
+
+  /* 📋 行程拖曳 */
+  const list=document.querySelector(".space-y-4");
+  if(list){
+    new Sortable(list,{
+      animation:150
+    });
+  }
+
 });
 </script>
 </body>
