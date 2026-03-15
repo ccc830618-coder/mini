@@ -650,11 +650,31 @@ window.addEventListener("load", function(){
 
   /* 📋 行程拖曳 */
   const list=document.querySelector(".space-y-4");
-  if(list){
-    new Sortable(list,{
-      animation:150
-    });
-  }
+
+if(list){
+  new Sortable(list,{
+    animation:150,
+
+    onEnd: function (evt) {
+
+      const oldIndex = evt.oldIndex;
+      const newIndex = evt.newIndex;
+
+      if(oldIndex === newIndex) return;
+
+      // 取得 Vue app
+      const app = document.querySelector("#app").__vue_app__;
+      const vm = app._instance.proxy;
+
+      const arr = vm.itinerary[vm.activeDate];
+
+      const moved = arr.splice(oldIndex,1)[0];
+      arr.splice(newIndex,0,moved);
+
+      vm.saveData();
+    }
+  });
+}
 
 });
 </script>
