@@ -140,8 +140,8 @@
             </div>
 
             <!-- 行程列表 -->
-            <div class="space-y-4 mt-4">
-                <div v-for="(item, idx) in itinerary[activeDate]" :key="item.id" @click="openEditItinerary(item, idx)" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-95 transition-all">
+<div id="itinerary-list" class="space-y-4 mt-4">
+    <div v-for="(item, idx) in itinerary[activeDate]":key="item.id" @click="openEditItinerary(item, idx)" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-95 transition-all">
                     <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover">
                     <div class="p-4">
                         <div class="flex justify-between items-start">
@@ -594,33 +594,76 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
-window.addEventListener("load", function(){
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
-  /* ✈️ 旅行倒數（到 2026/05/05） */
+<script>
+/**
+ * 這段代碼負責處理：
+ * 1. 旅行倒數與天氣資訊顯示
+ * 2. 穩定版拖拽排序，並確保排序後會自動同步到雲端
+ */
+window.addEventListener("load", function(){
+  // 取得 Vue 實例中的數據與方法 (透過存取 DOM 元素上的 __vue_app__)
+  // 這是為了在不改動您原有 Vue 架構下，讓外部腳本能觸發 Vue 內部的儲存功能
+  const appElement = document.getElementById('app');
+  
+  // ✈️ 旅行倒數
   const target = new Date("2026-05-05T00:00:00+08:00");
   const header = document.querySelector("header");
-  if(header){
+  if(header && !document.getElementById('countdownBox')){
     const box = document.createElement("div");
     box.id = "countdownBox";
-    box.style.position = "absolute";
-    box.style.left = "14px";
-    box.style.top = "14px";
-    box.style.background = "rgba(255,255,255,0.9)";
-    box.style.padding = "6px 10px";
-    box.style.borderRadius = "12px";
-    box.style.fontSize = "12px";
+    box.style.cssText = "position:absolute; left:14px; top:14px; background:rgba(255,255,255,0.9); padding:6px 10px; border-radius:12px; font-size:12px; z-index:30;";
     header.appendChild(box);
-
-    function updateCountdown(){
+    const updateCountdown = () => {
       const today = new Date();
       const diff = Math.ceil((target - today) / 86400000);
       box.innerHTML = "✈️ " + diff + " days";
-    }
+    };
     updateCountdown();
     setInterval(updateCountdown, 60000);
   }
 
-  /* 🌤️ 福岡 7 天天氣 */
+  // 📋 穩定版行程拖曳邏輯
+  const initSortable = () => {
+    const list = document.getElementById('itinerary-list');
+    if (!list) return;
+
+    // 如果已經有舊的實例，先銷毀避免重複綁定
+    if (window.mySortable) window.mySortable.destroy();
+
+    window.mySortable = new Sortable(list, {
+      animation: 250,
+      ghostClass: 'bg-lavender-50', // 拖動時的底色
+      onEnd: function (evt) {
+        // 當拖拽結束時，手動調整 Vue 內部的數組順序
+        // 透過 Vue 暴露出的方法來處理資料同步
+        const vueProxy = appElement.__vue_app__._instance.proxy;
+        const currentList = vueProxy.itinerary[vueProxy.activeDate];
+        
+        // 1. 移動資料陣列中的元素
+        const movedItem = currentList.splice(evt.oldIndex, 1)[0];
+        currentList.splice(evt.newIndex, 0, movedItem);
+        
+        // 2. 觸發儲存功能（這會自動執行您原本寫好的 saveData，將結果傳到 Firebase）
+        vueProxy.saveData();
+      }
+    });
+  };
+
+  // 初始化拖拽
+  initSortable();
+
+  // 因為您有分頁切換，當 activeDate 改變時，DOM 會重新渲染，
+  // 我們需要持續觀察清單是否存在，若消失後重新出現就重新綁定。
+  const observer = new MutationObserver(() => {
+    if (document.getElementById('itinerary-list') && !window.mySortable?.el?.isConnected) {
+      initSortable();
+    }
+  });
+  observer.observe(appElement, { childList: true, subtree: true });
+
+  // 🌤️ 福岡 7 天天氣 (保持原樣)
   fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo")
     .then(res=>res.json())
     .then(data=>{
@@ -628,188 +671,16 @@ window.addEventListener("load", function(){
       const days=data.daily.time;
       const temps=data.daily.temperature_2m_max;
       const box=document.createElement("div");
-      box.style.position="absolute";
-      box.style.right="14px";
-      box.style.top="14px";
-      box.style.background="rgba(255,255,255,0.9)";
-      box.style.padding="6px";
-      box.style.borderRadius="12px";
-      box.style.fontSize="11px";
+      box.style.cssText = "position:absolute; right:14px; top:14px; background:rgba(255,255,255,0.9); padding:6px; border-radius:12px; font-size:11px; z-index:30;";
       let html="";
-      for(let i=0;i<7;i++){
+      for(let i=0;i<Math.min(days.length, 5);i++){ // 縮短一點避免擋到內容
         const d=new Date(days[i]);
-        const m=d.getMonth()+1;
-        const da=d.getDate();
-        html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`;
+        html+=`${d.getMonth()+1}/${d.getDate()} ☀️${Math.round(temps[i])}°<br>`;
       }
       box.innerHTML=html;
       header.appendChild(box);
     });
-
-  /* 📋 行程拖曳 */
-  const list=document.querySelector(".space-y-4");
-  if(list){
-    new Sortable(list, { animation: 150 });
-  }
-
-  /* 🖼️ 行程卡縮略圖 */
-  if(list){
-    const cards = list.querySelectorAll(":scope > *");
-    cards.forEach(card=>{
-      if(card.querySelector(".card-photo")) return; // 避免重複
-      const photoDiv = document.createElement("div");
-      photoDiv.className = "card-photo";
-      photoDiv.style.marginBottom = "6px";
-      // 範例縮略圖，可改成真實 URL
-      const img = document.createElement("img");
-      img.src = "https://via.placeholder.com/300x120?text=行程照片";
-      img.alt = "行程照片";
-      img.style.width = "100%";
-      img.style.height = "120px";
-      img.style.objectFit = "cover";
-      img.style.borderRadius = "8px";
-      img.loading = "lazy";
-      photoDiv.appendChild(img);
-      card.prepend(photoDiv);
-
-      // 點擊大圖
-      img.addEventListener('click', ()=>{
-        const modal = document.createElement('div');
-        modal.style.position='fixed';
-        modal.style.top='0';
-        modal.style.left='0';
-        modal.style.width='100%';
-        modal.style.height='100%';
-        modal.style.background='rgba(0,0,0,0.8)';
-        modal.style.display='flex';
-        modal.style.alignItems='center';
-        modal.style.justifyContent='center';
-        modal.style.zIndex='9999';
-        const big = document.createElement('img');
-        big.src = img.src; // 可換成原圖
-        big.style.maxWidth='90%';
-        big.style.maxHeight='90%';
-        modal.appendChild(big);
-        modal.addEventListener('click', ()=>modal.remove());
-        document.body.appendChild(modal);
-      });
-    });
-  }
-
 });
-</script>
-
-<!-- 在原本的 </body> 標籤前加入以下程式碼 -->
-
-<style>
-    /* 加入拖拽手柄的樣式 */
-    .drag-handle {
-        cursor: grab;
-        padding: 8px;
-        color: #ddd;
-        transition: color 0.2s;
-    }
-    .drag-handle:active { cursor: grabbing; }
-    .drag-item:hover .drag-handle { color: #A160CE; }
-    
-    /* 拖動時的預覽樣式 */
-    .sortable-ghost {
-        opacity: 0.3;
-        background: #F4EBFC !important;
-        border: 2px dashed #A160CE !important;
-    }
-    .sortable-chosen {
-        transform: scale(1.02);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-</style>
-
-<script>
-/**
- * 這是獨立的行程拖拽優化腳本
- * 它會自動尋找行程列表並初始化穩定的拖拽功能
- */
-(function() {
-    const initSortableEnhancement = () => {
-        // 找到行程列表容器
-        // 注意：這裡假設 Vue 渲染後的列表結構
-        const listContainer = document.querySelector('#app main > div[v-show*="itinerary"] .space-y-4');
-        
-        if (!listContainer) return;
-
-        // 1. 為每個卡片添加拖拽手柄 (如果還沒有的話)
-        const addHandles = () => {
-            const items = listContainer.querySelectorAll('.bg-white.rounded-3xl');
-            items.forEach(item => {
-                if (!item.querySelector('.drag-handle')) {
-                    item.classList.add('flex', 'items-center', 'drag-item');
-                    
-                    // 創建手柄
-                    const handle = document.createElement('div');
-                    handle.className = 'drag-handle flex items-center justify-center';
-                    handle.innerHTML = '<i class="ph-bold ph-dots-six-vertical text-xl"></i>';
-                    
-                    // 將手柄插入到卡片內容的最前面
-                    item.prepend(handle);
-                }
-            });
-        };
-
-        // 初始執行一次
-        addHandles();
-
-        // 2. 初始化 Sortable
-        if (window.Sortable) {
-            // 如果已經有舊的實例則銷毀
-            if (window._itinerarySortable) window._itinerarySortable.destroy();
-
-            window._itinerarySortable = new Sortable(listContainer, {
-                handle: '.drag-handle', // 只有按住手柄才能拖動
-                animation: 250,         // 動畫流暢度
-                ghostClass: 'sortable-ghost',
-                chosenClass: 'sortable-chosen',
-                forceFallback: false,    // 手機原生支持
-                onEnd: function (evt) {
-                    // 當拖拽結束時，觸發 Vue 數據更新
-                    // 取得 Vue app 實例
-                    const appEl = document.querySelector('#app');
-                    if (appEl && appEl.__vue_app__) {
-                        const vueInstance = appEl.__vue_app__._instance.proxy;
-                        const activeDate = vueInstance.activeDate;
-                        const currentList = vueInstance.itinerary[activeDate];
-                        
-                        // 根據拖動結果重新排列陣列
-                        const movedItem = currentList.splice(evt.oldIndex, 1)[0];
-                        currentList.splice(evt.newIndex, 0, movedItem);
-                        
-                        // 調用 Vue 內的存檔函數
-                        if (vueInstance.saveData) {
-                            vueInstance.saveData();
-                        }
-                    }
-                }
-            });
-        }
-
-        // 監聽 DOM 變化（當切換日期時，Vue 會重新渲染列表，需要重新檢查手柄）
-        const observer = new MutationObserver(() => {
-            addHandles();
-        });
-        observer.observe(listContainer, { childList: true });
-    };
-
-    // 延遲一點執行，確保 Vue 已經掛載並渲染
-    window.addEventListener('load', () => {
-        setTimeout(initSortableEnhancement, 1000);
-    });
-
-    // 當切換分頁或日期時也嘗試重新初始化
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('button') || e.target.closest('.rounded-2xl')) {
-            setTimeout(initSortableEnhancement, 100);
-        }
-    });
-})();
 </script>
 </body>
 </html>
