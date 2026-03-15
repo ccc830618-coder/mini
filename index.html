@@ -559,14 +559,6 @@
 
             const addListCategory = (list) => { list.push({ name: '新分類', items: [] }); saveData(); };
             const addItemToList = (cat) => { cat.items.push({ name: '新項目', done: false }); saveData(); };
-
-const initSortable = () => {
-    const el = document.getElementById('itinerary-list');
-    if (!el) return;
-    Sortable.create(el, {
-        animation: 200,
-        delay: 100, // 手機端長按 100ms 後觸發拖拽，防止誤觸
-
             const totalExpenseTwd = computed(() => expenses.value.reduce((s, i) => s + (Number(i.amount) || 0), 0));
 
             onMounted(() => { 
@@ -588,6 +580,12 @@ const initSortable = () => {
                     }
                 }, (err) => { dbConnected.value = false; });
             });
+const initSortable = () => {
+    const el = document.getElementById('itinerary-list');
+    if (!el) return;
+    Sortable.create(el, {
+        animation: 200,
+        delay: 100, // 手機端長按 100ms 後觸發拖拽，防止誤觸
 
             return {
                 activeTab, activeDate, dates, flights, itinerary, preCheck, luggage, shopping, expenses, totalExpenseTwd,
