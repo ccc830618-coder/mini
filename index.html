@@ -7,8 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- 引入拖拽庫 -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -31,7 +30,6 @@
         @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s ease-out; }
         [v-cloak] { display: none; }
-        .sortable-ghost { opacity: 0.3; background: #E6D4F4; border-radius: 24px; }
     </style>
 </head>
 <body class="text-gray-700 antialiased">
@@ -142,10 +140,10 @@
                 </div>
             </div>
 
-            <!-- 行程列表 (新增 ID 用於拖拉) -->
-            <div id="itinerary-list" class="space-y-4 mt-4">
+            <!-- 行程列表 -->
+<div id="itinerary-list" class="space-y-4 mt-4">
                 <div v-for="(item, idx) in itinerary[activeDate]" :key="item.id" @click="openEditItinerary(item, idx)" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden relative active:scale-95 transition-all">
-                    <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover pointer-events-none">
+                    <img v-if="item.image" :src="item.image" class="w-full h-40 object-cover">
                     <div class="p-4">
                         <div class="flex justify-between items-start">
                             <div>
@@ -168,7 +166,6 @@
 
         <!-- 2. 清單分頁 -->
         <div v-show="activeTab === 'info'" class="pt-6 px-5 space-y-6">
-            <!-- 匯率工具、行前檢查、行李清單 (完整保留您的原始代碼) -->
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-lavender-100">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold text-gray-800 flex items-center"><i class="ph-fill ph-calculator mr-2 text-lavender-500"></i>匯率助手</h3>
@@ -184,6 +181,10 @@
                     <div class="bg-gray-50 p-4 rounded-2xl">
                         <div class="flex justify-between items-end mb-2"><span class="text-[10px] font-bold text-gray-400">免稅門檻 (¥5,500)</span><span class="text-[10px] font-black" :class="jpy >= 5500 ? 'text-green-500' : 'text-lavender-500'">{{ jpy >= 5500 ? 'SUCCESS 免稅！' : `差 ¥${(5500 - jpy).toLocaleString()}` }}</span></div>
                         <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mb-4"><div class="bg-lavender-400 h-full transition-all duration-500" :style="{ width: Math.min((jpy / 5500) * 100, 100) + '%' }"></div></div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center p-2 bg-white rounded-xl"><p class="text-[9px] text-gray-400 font-bold uppercase">10% 消費稅</p><p class="text-sm font-black">¥{{ Math.floor(jpy * 0.1).toLocaleString() }}</p></div>
+                            <div class="text-center p-2 bg-white rounded-xl"><p class="text-[9px] text-gray-400 font-bold uppercase">未稅價格</p><p class="text-sm font-black">¥{{ Math.ceil(jpy / 1.1).toLocaleString() }}</p></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -213,9 +214,9 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- 行李清單 (略，與原版一致) -->
-             <div class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden">
+
+            <!-- 行李清單 -->
+            <div class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden">
                 <div class="p-6 pb-2 flex justify-between items-center">
                     <h3 class="font-bold text-gray-800 flex items-center"><i class="ph-fill ph-suitcase mr-2 text-lavender-500"></i>行李清單</h3>
                     <button @click="addListCategory(luggage)" class="text-xs text-lavender-500 font-black">+ 分類</button>
@@ -229,8 +230,11 @@
                         <div v-for="(item, iIdx) in cat.items" :key="iIdx" class="flex items-center justify-between group">
                             <label class="flex items-center space-x-3 cursor-pointer flex-1">
                                 <input type="checkbox" v-model="item.done" @change="saveData" class="w-5 h-5 accent-lavender-500 rounded-lg shrink-0">
-                                <input v-model="item.name" @change="saveData" :class="item.done ? 'text-gray-300 line-through italic' : 'text-sm font-medium text-gray-700'" class="bg-transparent border-none outline-none w-full p-0">
+                                <input v-model="item.name" @change="saveData" 
+                                       :class="item.done ? 'text-gray-300 line-through italic' : 'text-sm font-medium text-gray-700'" 
+                                       class="bg-transparent border-none outline-none w-full p-0 focus:ring-0">
                             </label>
+                            <button @click="cat.items.splice(iIdx, 1); saveData()" class="text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph ph-x-circle text-lg"></i></button>
                         </div>
                         <button @click="addItemToList(cat)" class="text-[10px] text-lavender-400 font-black mt-2">+ 新增細項</button>
                     </div>
@@ -238,7 +242,7 @@
             </div>
         </div>
 
-        <!-- 3. 購物分頁 (完整保留您的原始代碼) -->
+        <!-- 3. 購物分頁 -->
         <div v-show="activeTab === 'shopping'" class="pt-6 px-5 space-y-6">
             <div v-for="(cat, cIdx) in shopping" :key="cIdx" class="bg-white rounded-3xl shadow-sm border border-lavender-100 overflow-hidden">
                 <div class="p-4 bg-lavender-50/50 flex justify-between items-center border-b border-lavender-50"><input v-model="cat.name" @change="saveData" class="font-black text-gray-700 bg-transparent outline-none"><button @click="shopping.splice(cIdx, 1); saveData()" class="text-gray-200"><i class="ph ph-trash"></i></button></div>
@@ -246,15 +250,22 @@
                     <div v-for="(item, iIdx) in cat.items" :key="iIdx" class="flex items-center justify-between group">
                         <div class="flex items-center space-x-3">
                             <input type="checkbox" v-model="item.done" @change="saveData" class="w-5 h-5 accent-lavender-500 rounded-lg">
-                            <p :class="item.done ? 'line-through text-gray-300' : 'text-sm font-bold text-gray-800'">{{ item.name }}</p>
+                            <div @click="openEditShoppingItem(cat, item, iIdx)" class="cursor-pointer">
+                                <p :class="item.done ? 'line-through text-gray-300' : 'text-sm font-bold text-gray-800'">{{ item.name }}</p>
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                    <span v-for="tag in item.tags" :key="tag" class="text-[8px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded-md font-bold uppercase">#{{ tag }}</span>
+                                </div>
+                            </div>
                         </div>
+                        <button @click="cat.items.splice(iIdx, 1); saveData()" class="text-gray-200 opacity-0 group-hover:opacity-100"><i class="ph ph-trash"></i></button>
                     </div>
                     <button @click="openAddItemToShopping(cat)" class="w-full py-2 border border-dashed border-lavender-200 rounded-xl text-[10px] text-lavender-400 font-black">+ 新增商品項目</button>
                 </div>
             </div>
+            <button @click="shopping.push({name: '新大項', items: []}); saveData()" class="w-full py-5 border-2 border-dashed border-lavender-100 rounded-[2rem] text-lavender-300 font-black text-xs uppercase">+ 新增購物分類</button>
         </div>
 
-        <!-- 4. 花費分頁 (完整保留您的原始代碼) -->
+        <!-- 4. 花費分頁 -->
         <div v-show="activeTab === 'expense'" class="pt-6 px-5">
             <div class="bg-gradient-to-br from-lavender-500 to-lavender-700 p-8 rounded-[32px] text-white shadow-xl mb-6 text-center">
                 <p class="text-[10px] opacity-70 mb-1 font-black uppercase">總花費 (TWD)</p>
@@ -264,16 +275,16 @@
                 <div v-for="(item, idx) in expenses" :key="item.id" @click="openEditExpense(item, idx)" class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-lavender-50 active:scale-95 transition-all cursor-pointer">
                     <div class="flex items-center space-x-3">
                         <div class="w-10 h-10 rounded-xl bg-lavender-50 flex items-center justify-center text-lavender-500"><i class="ph-fill ph-receipt text-xl"></i></div>
-                        <div><p class="font-bold text-sm text-gray-800">{{ item.name }}</p></div>
+                        <div><p class="font-bold text-sm text-gray-800">{{ item.name }}</p><p v-if="item.note" class="text-[9px] text-gray-400 font-bold">{{ item.note }}</p></div>
                     </div>
-                    <p class="font-black text-lavender-600">NT$ {{ item.amount }}</p>
+                    <div class="flex items-center space-x-3"><p class="font-black text-lavender-600">NT$ {{ item.amount }}</p><button @click.stop="expenses.splice(idx, 1); saveData()" class="text-gray-200"><i class="ph ph-trash"></i></button></div>
                 </div>
             </div>
             <button @click="openAddModal('expense')" class="fixed bottom-8 right-6 w-14 h-14 bg-lavender-500 text-white rounded-full shadow-lg flex items-center justify-center z-50"><i class="ph ph-plus text-2xl font-bold"></i></button>
         </div>
     </main>
 
-    <!-- 模態框系統 (完整保留所有欄位) -->
+    <!-- 模態框系統 -->
     <div v-if="modal.show" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center px-4">
         <div class="bg-white w-full max-w-md rounded-t-[40px] p-8 shadow-2xl animate-slide-up max-h-[85vh] overflow-y-auto no-scrollbar">
             <div class="flex justify-between items-center mb-6">
@@ -281,7 +292,26 @@
                 <button @click="modal.show = false" class="text-gray-400 bg-gray-50 p-2 rounded-full"><i class="ph ph-x text-xl font-bold"></i></button>
             </div>
             
-            <!-- 行程編輯內容 (略，維持原樣) -->
+            <div v-if="modal.type === 'flight'" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1"><label class="text-[10px] text-gray-400 font-black ml-2">航空公司</label><input v-model="formFlight.airline" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none"></div>
+                    <div class="space-y-1"><label class="text-[10px] text-gray-400 font-black ml-2">航班號</label><input v-model="formFlight.code" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input v-model="formFlight.from" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="起飛城市">
+                    <input v-model="formFlight.fromCode" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none uppercase" placeholder="代碼">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input v-model="formFlight.to" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="目的地">
+                    <input v-model="formFlight.toCode" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none uppercase" placeholder="代碼">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input v-model="formFlight.time1" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="起飛時間">
+                    <input v-model="formFlight.time2" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="抵達時間">
+                </div>
+                <button @click="saveFlight" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl mt-4">儲存機票資訊</button>
+            </div>
+            
             <div v-if="modal.type === 'itinerary'" class="space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                     <select v-model="form.category" class="bg-gray-50 p-4 rounded-2xl font-bold outline-none">
@@ -293,28 +323,55 @@
                 <input v-model="form.mapUrl" class="w-full bg-gray-50 p-4 rounded-2xl outline-none" placeholder="地圖/網站網址">
                 <div class="space-y-2">
                     <p class="text-[10px] text-gray-400 font-black ml-2 uppercase">行程照片</p>
-                    <label class="w-full bg-lavender-50 border-2 border-dashed border-lavender-200 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer">
-                        <i class="ph ph-image-square text-2xl text-lavender-400"></i>
-                        <span class="text-[10px] font-bold text-lavender-500 mt-1">{{ form.image ? '已選取照片' : '點擊選取照片' }}</span>
-                        <input type="file" @change="handleImageUpload" class="hidden" accept="image/*">
-                    </label>
+                    <div class="flex items-center space-x-3">
+                        <label class="flex-1 bg-lavender-50 border-2 border-dashed border-lavender-200 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-lavender-100 transition-all">
+                            <i class="ph ph-image-square text-2xl text-lavender-400"></i>
+                            <span class="text-[10px] font-bold text-lavender-500 mt-1">{{ form.image ? '已選取照片' : '點擊選取照片' }}</span>
+                            <input type="file" @change="handleImageUpload" class="hidden" accept="image/*">
+                        </label>
+                        <div v-if="form.image" class="w-20 h-20 rounded-2xl overflow-hidden relative group">
+                            <img :src="form.image" class="w-full h-full object-cover">
+                            <button @click="form.image = ''" class="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph-bold ph-x"></i></button>
+                        </div>
+                    </div>
                 </div>
                 <textarea v-model="form.note" class="w-full bg-gray-50 p-4 rounded-2xl outline-none" rows="3" placeholder="備註內容..."></textarea>
                 <div class="grid grid-cols-2 gap-3 mt-4">
                     <button v-if="modal.mode === 'edit'" @click="deleteItinerary(modal.idx)" class="bg-gray-100 text-gray-400 font-black p-5 rounded-3xl">刪除行程</button>
-                    <button @click="saveItinerary" class="bg-lavender-500 text-white font-black p-5 rounded-3xl shadow-lg" :class="modal.mode !== 'edit' && 'col-span-2'">儲存</button>
+                    <button @click="saveItinerary" :class="modal.mode === 'edit' ? 'bg-lavender-500' : 'col-span-2 bg-lavender-500'" class="text-white font-black p-5 rounded-3xl shadow-lg">
+                        {{ modal.mode === 'edit' ? '更新行程' : '新增行程' }}
+                    </button>
                 </div>
             </div>
-
-            <!-- 其他 Modal 分頁 (航班、購物、花費) 內容皆完整保留... -->
+            
+            <div v-if="modal.type === 'shoppingItem'" class="space-y-4 pb-10">
+                <input v-model="formShop.name" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none text-lg" placeholder="商品名稱">
+                <div class="flex flex-wrap gap-2">
+                    <button v-for="t in ['必買', '伴手禮', '送禮', '自己用', '保健', '美妝', '代購']" :key="t" @click="toggleTag(t)" :class="formShop.tags.includes(t) ? 'bg-lavender-500 text-white' : 'bg-gray-100 text-gray-400'" class="text-xs px-3 py-1.5 rounded-full font-bold">#{{ t }}</button>
+                    <input v-model="customTag" @keyup.enter="addCustomTag" class="text-xs px-3 py-1.5 bg-lavender-50 border border-lavender-100 rounded-full outline-none w-20" placeholder="+ 自定義">
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-6">
+                    <button v-if="modal.mode === 'edit'" @click="deleteShoppingItem" class="bg-gray-100 text-gray-400 font-black p-5 rounded-3xl">刪除商品</button>
+                    <button @click="saveShoppingItem" :class="modal.mode === 'edit' ? 'bg-lavender-500' : 'col-span-2 bg-lavender-500'" class="text-white font-black p-5 rounded-3xl">
+                        {{ modal.mode === 'edit' ? '更新商品' : '加入清單' }}
+                    </button>
+                </div>
+            </div>
+            
             <div v-if="modal.type === 'expense'" class="space-y-4">
                 <input v-model="form.name" class="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none text-lg" placeholder="消費項目">
                 <input type="number" v-model="form.amount" class="w-full bg-gray-50 p-4 rounded-2xl font-black text-2xl outline-none" placeholder="NT$ 金額">
-                <button @click="saveExpense" class="w-full bg-lavender-500 text-white font-black p-5 rounded-3xl">紀錄花費</button>
+                <input v-model="form.note" class="w-full bg-gray-50 p-4 rounded-2xl outline-none" placeholder="備註...">
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                    <button v-if="modal.mode === 'edit'" @click="deleteExpense" class="bg-gray-100 text-gray-400 font-black p-5 rounded-3xl">刪除紀錄</button>
+                    <button @click="saveExpense" :class="modal.mode === 'edit' ? 'bg-lavender-500' : 'col-span-2 bg-lavender-500'" class="text-white font-black p-5 rounded-3xl">
+                        {{ modal.mode === 'edit' ? '更新紀錄' : '紀錄花費' }}
+                    </button>
+                </div>
             </div>
-            <!-- (其他 Modal 類型此處略過，但在完整代碼中皆存在) -->
         </div>
     </div>
+
 </div>
 
 <script type="module">
@@ -334,11 +391,10 @@
     const db = getFirestore(firebaseApp);
     const dbRef = doc(db, 'honeymoon_projects', 'fukuoka_2026_final_sync');
 
-    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+    const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
     createApp({
         setup() {
-            // --- 資料狀態 (全部維持原版) ---
             const activeTab = ref('itinerary');
             const activeDate = ref('2026-05-05');
             const dbConnected = ref(false);
@@ -353,6 +409,7 @@
 
             const dates = [
                 { id: '2026-05-05', day: 'Tue', date: '5/5' }, 
+                { id: '2026-05-05_2', day: 'Tue', date: '5/5' },
                 { id: '2026-05-06', day: 'Wed', date: '5/6' }, 
                 { id: '2026-05-07', day: 'Thu', date: '5/7' }, 
                 { id: '2026-05-08', day: 'Fri', date: '5/8' },
@@ -366,12 +423,13 @@
             });
 
             const itinerary = ref({
-                '2026-05-05': [], '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
+                '2026-05-05': [], '2026-05-05_2': [], 
+                '2026-05-06': [], '2026-05-07': [], '2026-05-08': [], '2026-05-09': [], '2026-05-10': []
             });
 
-            const preCheck = ref([{ name: '行前文件', items: [{ name: '護照', done: true }] }]);
+            const preCheck = ref([{ name: '行前文件', items: [{ name: '護照', done: true }, { name: 'VJW', done: false }] }]);
             const luggage = ref([{ name: '必備用品', items: [{ name: '行動電源', done: false }] }]);
-            const shopping = ref([{ name: '藥妝', items: [] }]);
+            const shopping = ref([{ name: '美妝藥妝', items: [{ name: '合利他命', done: false, tags: ['必買'] }] }]);
             const expenses = ref([]);
 
             const modal = ref({ show: false, type: '', title: '', mode: 'add', target: null, idx: null });
@@ -380,35 +438,16 @@
             const formShop = ref({ tags: [] });
             const customTag = ref('');
 
-            // --- 方法 (新增拖拉存檔邏輯) ---
-            const initSortable = () => {
-                const el = document.getElementById('itinerary-list');
-                if (!el) return;
-                Sortable.create(el, {
-                    animation: 250,
-                    ghostClass: 'sortable-ghost',
-                    onEnd: (evt) => {
-                        const list = itinerary.value[activeDate.value];
-                        const movedItem = list.splice(evt.oldIndex, 1)[0];
-                        list.splice(evt.newIndex, 0, movedItem);
-                        saveData(); // 拖完自動存
-                    }
-                });
-            };
-
-            // 監聽日期切換，切換後重新初始化拖拉
-            watch([activeDate, activeTab], () => {
-                if (activeTab.value === 'itinerary') {
-                    nextTick(() => initSortable());
-                }
-            });
-
             const changeUserName = () => {
-                const inputName = prompt('請輸入你的名字', userName.value);
-                if (inputName) { userName.value = inputName; localStorage.setItem('fukuoka_username', inputName); }
+                const inputName = prompt('請輸入你的名字 (讓大家知道是誰在更新喔！)', userName.value);
+                if (inputName && inputName.trim() !== '') {
+                    userName.value = inputName.trim();
+                    localStorage.setItem('fukuoka_username', userName.value);
+                }
             };
 
             const saveData = async () => {
+                if (!userName.value) changeUserName();
                 const data = {
                     flights: JSON.parse(JSON.stringify(flights.value)),
                     itinerary: JSON.parse(JSON.stringify(itinerary.value)),
@@ -419,48 +458,214 @@
                     lastUpdate: Date.now(),
                     lastUpdatedBy: userName.value || '神秘旅伴'
                 };
-                try { await setDoc(dbRef, data); } catch (e) { console.error(e); }
+                localStorage.setItem('fukuoka_honeymoon_vfinal', JSON.stringify(data));
+                try { await setDoc(dbRef, data); } catch (e) { console.error("Cloud Sync Failed", e); }
             };
 
-            // (其餘所有功能方法維持不變，確保您的原始邏輯完整)
+            const updateTime = () => {
+                currentTime.value = new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            };
+
+            const fetchWeather = async () => {
+                try {
+                    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&current_weather=true');
+                    const data = await res.json();
+                    weather.value.temp = Math.round(data.current_weather.temperature);
+                    weather.value.desc = '福岡晴朗'; weather.value.icon = 'ph-fill ph-sun';
+                } catch(e) { weather.value.desc = '福岡天氣'; }
+            };
+
             const jpyToTwd = () => twd.value = Math.round(jpy.value * rate.value);
             const twdToJpy = () => jpy.value = Math.round(twd.value / rate.value);
-            const openFlightEdit = (t) => { modal.value = { show: true, type: 'flight', title: '機票', target: t }; formFlight.value = { ...flights.value[t] }; };
-            const openAddModal = (t) => { modal.value = { show: true, type: t, title: '新增項目', mode: 'add' }; form.value = { id: Date.now(), category: '景點', name: '', time: '' }; };
-            const openEditItinerary = (item, idx) => { modal.value = { show: true, type: 'itinerary', title: '編輯', mode: 'edit', idx }; form.value = { ...item }; };
-            const handleImageUpload = (e) => { const reader = new FileReader(); reader.onload = (ev) => form.value.image = ev.target.result; reader.readAsDataURL(e.target.files[0]); };
-            const saveItinerary = () => { if (modal.value.mode === 'edit') itinerary.value[activeDate.value][modal.value.idx] = { ...form.value }; else itinerary.value[activeDate.value].push({ ...form.value }); modal.value.show = false; saveData(); };
-            const saveExpense = () => { expenses.value.unshift({ ...form.value }); modal.value.show = false; saveData(); };
-            const totalExpenseTwd = computed(() => expenses.value.reduce((s, i) => s + (Number(i.amount) || 0), 0));
-            const addListCategory = (l) => { l.push({ name: '新分類', items: [] }); saveData(); };
-            const addItemToList = (c) => { c.items.push({ name: '新細項', done: false }); saveData(); };
 
-            onMounted(() => {
-                initSortable();
+            const openFlightEdit = (target) => {
+                modal.value = { show: true, type: 'flight', title: target === 'departure' ? '5/5 去程' : '5/10 回程', target };
+                formFlight.value = { ...flights.value[target] };
+            };
+            const saveFlight = () => { flights.value[modal.value.target] = { ...formFlight.value }; modal.value.show = false; saveData(); };
+
+            const openAddModal = (type) => {
+                modal.value = { show: true, type, title: '新增項目', mode: 'add' };
+                if (type === 'itinerary') form.value = { category: '景點', name: '', time: '', mapUrl: '', image: '', note: '' };
+                else form.value = { name: '', amount: null, note: '' };
+            };
+
+            const openEditItinerary = (item, idx) => {
+                modal.value = { show: true, type: 'itinerary', title: '編輯行程', mode: 'edit', idx };
+                form.value = { ...item };
+            };
+
+            const openEditExpense = (item, idx) => {
+                modal.value = { show: true, type: 'expense', title: '編輯花費', mode: 'edit', idx };
+                form.value = { ...item };
+            };
+
+            const deleteExpense = () => {
+                expenses.value.splice(modal.value.idx, 1);
+                modal.value.show = false;
+                saveData();
+            };
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => { form.value.image = event.target.result; };
+                reader.readAsDataURL(file);
+            };
+
+            const saveItinerary = () => {
+                if (modal.value.mode === 'edit') { itinerary.value[activeDate.value][modal.value.idx] = { ...form.value }; } 
+                else { itinerary.value[activeDate.value].push({ ...form.value, id: Date.now() }); }
+                modal.value.show = false; saveData();
+            };
+
+            const deleteItinerary = (idx) => { itinerary.value[activeDate.value].splice(idx, 1); modal.value.show = false; saveData(); };
+            
+            const saveExpense = () => {
+                if (modal.value.mode === 'edit') {
+                    expenses.value[modal.value.idx] = { ...form.value };
+                } else {
+                    expenses.value.unshift({ ...form.value, id: Date.now() });
+                }
+                modal.value.show = false; 
+                saveData();
+            };
+
+            const openAddItemToShopping = (cat) => { modal.value = { show: true, type: 'shoppingItem', title: `新增到 ${cat.name}`, target: cat, mode: 'add' }; formShop.value = { name: '', tags: [], done: false }; };
+            
+            const openEditShoppingItem = (cat, item, idx) => {
+                modal.value = { show: true, type: 'shoppingItem', title: '編輯商品', target: cat, idx, mode: 'edit' };
+                formShop.value = JSON.parse(JSON.stringify(item));
+            };
+
+            const deleteShoppingItem = () => {
+                modal.value.target.items.splice(modal.value.idx, 1);
+                modal.value.show = false;
+                saveData();
+            };
+
+            const toggleTag = (t) => { const idx = formShop.value.tags.indexOf(t); if (idx === -1) formShop.value.tags.push(t); else formShop.value.tags.splice(idx, 1); };
+            const addCustomTag = () => { if (customTag.value) { formShop.value.tags.push(customTag.value); customTag.value = ''; } };
+            
+            const saveShoppingItem = () => { 
+                if (modal.value.mode === 'edit') {
+                    modal.value.target.items[modal.value.idx] = { ...formShop.value };
+                } else {
+                    modal.value.target.items.push({ ...formShop.value }); 
+                }
+                modal.value.show = false; saveData(); 
+            };
+
+            const addListCategory = (list) => { list.push({ name: '新分類', items: [] }); saveData(); };
+            const addItemToList = (cat) => { cat.items.push({ name: '新項目', done: false }); saveData(); };
+
+const initSortable = () => {
+    const el = document.getElementById('itinerary-list');
+    if (!el) return;
+    Sortable.create(el, {
+        animation: 200,
+        delay: 100, // 手機端長按 100ms 後觸發拖拽，防止誤觸
+
+            const totalExpenseTwd = computed(() => expenses.value.reduce((s, i) => s + (Number(i.amount) || 0), 0));
+
+            onMounted(() => { 
+                updateTime(); fetchWeather(); setInterval(updateTime, 60000); 
                 onSnapshot(dbRef, (snap) => {
                     dbConnected.value = true;
                     if (snap.exists()) {
                         const d = snap.data();
-                        itinerary.value = d.itinerary || itinerary.value;
-                        flights.value = d.flights || flights.value;
-                        preCheck.value = d.preCheck || preCheck.value;
-                        luggage.value = d.luggage || luggage.value;
-                        shopping.value = d.shopping || shopping.value;
-                        expenses.value = d.expenses || expenses.value;
-                        lastUpdatedBy.value = d.lastUpdatedBy || '';
+                        if(d.flights) flights.value = d.flights;
+                        if(d.itinerary) {
+                            itinerary.value = d.itinerary;
+                            if(!itinerary.value['2026-05-05_2']) itinerary.value['2026-05-05_2'] = [];
+                        }
+                        if(d.preCheck) preCheck.value = d.preCheck;
+                        if(d.luggage) luggage.value = d.luggage;
+                        if(d.shopping) shopping.value = d.shopping;
+                        if(d.expenses) expenses.value = d.expenses;
+                        if(d.lastUpdatedBy) lastUpdatedBy.value = d.lastUpdatedBy;
                     }
-                });
+                }, (err) => { dbConnected.value = false; });
             });
 
             return {
                 activeTab, activeDate, dates, flights, itinerary, preCheck, luggage, shopping, expenses, totalExpenseTwd,
                 weather, currentTime, rate, showRateEdit, jpy, twd, jpyToTwd, twdToJpy, dbConnected,
-                userName, lastUpdatedBy, changeUserName, modal, form, formFlight, formShop,
-                openFlightEdit, openAddModal, openEditItinerary, handleImageUpload, saveItinerary, saveExpense, 
-                addListCategory, addItemToList, saveData
+                userName, lastUpdatedBy, changeUserName, modal, form, formFlight, formShop, customTag, 
+                openFlightEdit, saveFlight, openAddModal, openEditItinerary, openEditExpense, deleteExpense, handleImageUpload, saveItinerary, deleteItinerary, saveExpense, 
+                openAddItemToShopping, openEditShoppingItem, deleteShoppingItem, toggleTag, addCustomTag, saveShoppingItem, addListCategory, addItemToList, saveData
             }
         }
     }).mount('#app');
+</script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<script>
+window.addEventListener("load", function(){
+
+  /* ✈️ 旅行倒數（動態更新到 2026/05/05） */
+  const target = new Date("2026-05-05T00:00:00+08:00");
+  const header = document.querySelector("header");
+
+  if(header){
+    const box = document.createElement("div");
+    box.id = "countdownBox";
+    box.style.position = "absolute";
+    box.style.left = "14px";
+    box.style.top = "14px";
+    box.style.background = "rgba(255,255,255,0.9)";
+    box.style.padding = "6px 10px";
+    box.style.borderRadius = "12px";
+    box.style.fontSize = "12px";
+    header.appendChild(box);
+
+    function updateCountdown(){
+      const today = new Date();
+      const diff = Math.ceil((target - today) / 86400000);
+      box.innerHTML = "✈️ " + diff + " days";
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+  }
+
+  /* 🌤️ 福岡7天天氣 */
+  fetch("https://api.open-meteo.com/v1/forecast?latitude=33.59&longitude=130.40&daily=temperature_2m_max&timezone=Asia%2FTokyo")
+    .then(res=>res.json())
+    .then(data=>{
+      if(!header) return;
+      const days=data.daily.time;
+      const temps=data.daily.temperature_2m_max;
+      const box=document.createElement("div");
+      box.style.position="absolute";
+      box.style.right="14px";
+      box.style.top="14px";
+      box.style.background="rgba(255,255,255,0.9)";
+      box.style.padding="6px";
+      box.style.borderRadius="12px";
+      box.style.fontSize="11px";
+      let html="";
+      for(let i=0;i<7;i++){
+        const d=new Date(days[i]);
+        const m=d.getMonth()+1;
+        const da=d.getDate();
+        html+=`${m}/${da} ☀️${Math.round(temps[i])}°<br>`;
+      }
+      box.innerHTML=html;
+      header.appendChild(box);
+    });
+
+  /* 📋 行程拖曳 */
+  const list=document.querySelector(".space-y-4");
+  if(list){
+    new Sortable(list,{
+      animation:150
+    });
+  }
+
+});
 </script>
 </body>
 </html>
